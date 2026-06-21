@@ -1,0 +1,110 @@
+import { Router } from "express";
+import { db, usersTable, referralsTable, commissionsTable } from "@workspace/db";
+import { eq, and, desc } from "drizzle-orm";
+import { requireAuth, type AuthRequest } from "../middlewares/auth";
+import { getSetting } from "../lib/settings";
+
+const router = Router();
+
+// GET /referrals
+router.get("/", requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const [user] = await db.select().from(usersTable).where(eq(usersTable.id, req.userId!));
+    if (!user) { res.status(404).json({ error: "Not found" }); return; }
+
+    const refs = await db.select().from(referralsTable).where(eq(referralsTable.referrerId, req.userId!));
+    const refUserIds = refs.map(r => r.referredId);
+
+    const referredUsers = refUserIds.length > 0
+      ? await db.select().from(usersTable)
+      : [];
+    const allUsers = await db.select().from(usersTable);
+    const userMap = Object.fromEntries(allUsers.map(u => [u.id, u]));
+
+    const paidCommissions = await db.select().from(commissionsTable)
+      .where(and(eq(commissionsTable.userId, req.userId!), eq(commissionsTable.status, "paid")));
+    const pendingCommissions = await db.select().from(commissionsTable)
+      .where(and(eq(commissionsTable.userId, req.userId!), eq(commissionsTable.status, "pending")));
+
+    const commissionRate = Number(await getSetting("referralCommissionPercent")) || 5;
+    const baseUrl = process.env.REPLIT_DOMAINS
+      ? `https://${process.env.REPLIT_DOMAINS.split(",")[0]}`
+      : "http://localhost:80";
+
+    const refMembers = refs.map(r => {
+      const u = userMap[r.referredId];
+      return u ? {
+        id: u.id, name: u.name, email: u.email, status: u.status,
+        totalInvested: Number(u.totalInvested),
+        commissionGenerated: 0,
+        joinedAt: u.createdAt,
+      } : null;
+    }).filter(Boolean);
+
+    res.json({
+      referralCode: user.referralCode,
+      referralLink: `${baseUrl}/register?ref=${user.referralCode}`,
+      totalReferrals: refs.length,
+      activeReferrals: refMembers.filter(r => r?.status === "active").length,
+      totalCommissionEarned: paidCommissions.reduce((a, c) => a + Number(c.amount), 0),
+      pendingCommission: pendingCommissions.reduce((a, c) => a + Number(c.amount), 0),
+      commissionRate,
+      referrals: refMembers,
+    });
+  } catch (err) {
+    req.log.error({ err }, "Referral info error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// GET /referrals/tree
+router.get("/tree", requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const [user] = await db.select().from(usersTable).where(eq(usersTable.id, req.userId!));
+    if (!user) { res.status(404).json({ error: "Not found" }); return; }
+
+    const allRefs = await db.select().from(referralsTable);
+    const allUsers = await db.select().from(usersTable);
+    const userMap = Object.fromEntries(allUsers.map(u => [u.id, u]));
+
+    function buildTree(userId: number, level: number): any {
+      if (level > 3) return null;
+      const directRefs = allRefs.filter(r => r.referrerId === userId);
+      return {
+        id: userId,
+        name: userMap[userId]?.name ?? "Unknown",
+        email: userMap[userId]?.email ?? "",
+        level,
+        children: directRefs.map(r => buildTree(r.referredId, level + 1)).filter(Boolean),
+      };
+    }
+
+    res.json(buildTree(req.userId!, 0));
+  } catch (err) {
+    req.log.error({ err }, "Referral tree error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// GET /referrals/commissions
+router.get("/commissions", requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const commissions = await db.select().from(commissionsTable)
+      .where(eq(commissionsTable.userId, req.userId!))
+      .orderBy(desc(commissionsTable.createdAt));
+    const allUsers = await db.select().from(usersTable);
+    const userMap = Object.fromEntries(allUsers.map(u => [u.id, u]));
+
+    res.json(commissions.map(c => ({
+      id: c.id, fromUserId: c.fromUserId,
+      fromUserName: userMap[c.fromUserId]?.name ?? "Unknown",
+      amount: Number(c.amount), rate: Number(c.rate),
+      level: c.level, status: c.status, paidAt: c.paidAt, createdAt: c.createdAt,
+    })));
+  } catch (err) {
+    req.log.error({ err }, "Commissions error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+export default router;

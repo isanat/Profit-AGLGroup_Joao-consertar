@@ -1,0 +1,2 @@
+- [InvestFlow seed runner](investflow-seed.md) — tsx binary path for running seed without catalog issues
+- [InvestFlow deep import fix](investflow-deep-import.md) — design subagents use deep package imports that break Vite; always check and fix to main export
