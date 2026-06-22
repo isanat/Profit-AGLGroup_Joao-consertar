@@ -227,6 +227,25 @@
   }
 }
 
+/* ─── Admin area: golden card borders ─────────────────────────────── */
+:root {
+  --card-border-gold: rgba(212, 175, 55, 0.30);
+  --card-border-gold-hover: rgba(212, 175, 55, 0.65);
+  --card-glow-gold: rgba(212, 175, 55, 0.12);
+}
+
+[data-admin] .rounded-xl.border,
+[data-admin] .rounded-lg.border {
+  border-color: var(--card-border-gold);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+[data-admin] .rounded-xl.border:hover,
+[data-admin] .rounded-lg.border:hover {
+  border-color: var(--card-border-gold-hover);
+  box-shadow: 0 0 14px var(--card-glow-gold);
+}
+
 
 /**
  * Using the elevate system.

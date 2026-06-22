@@ -28,6 +28,7 @@ import Support from "@/pages/support";
 import AdminDashboard from "@/pages/admin/dashboard";
 import AdminUsers from "@/pages/admin/users";
 import AdminStrategies from "@/pages/admin/strategies";
+import AdminStrategyDetail from "@/pages/admin/strategy-detail";
 import AdminDeposits from "@/pages/admin/deposits";
 import AdminWithdrawals from "@/pages/admin/withdrawals";
 import AdminWallets from "@/pages/admin/wallets";
@@ -53,7 +54,7 @@ function ProtectedRoute({ component: Component, requireAdmin = false }: { compon
   const { user, isLoading } = useAuth();
   
   if (isLoading) {
-    return <div className="flex h-screen items-center justify-center bg-background"><p>Loading...</p></div>;
+    return <div className="flex h-screen items-center justify-center bg-background"><p>Carregando...</p></div>;
   }
   
   if (!user) {
@@ -66,7 +67,13 @@ function ProtectedRoute({ component: Component, requireAdmin = false }: { compon
 
   return (
     <AppLayout>
-      <Component />
+      {requireAdmin ? (
+        <div data-admin="true" className="contents">
+          <Component />
+        </div>
+      ) : (
+        <Component />
+      )}
     </AppLayout>
   );
 }
@@ -100,6 +107,7 @@ function Router() {
       <Route path="/admin" component={() => <ProtectedRoute component={AdminDashboard} requireAdmin={true} />} />
       <Route path="/admin/users" component={() => <ProtectedRoute component={AdminUsers} requireAdmin={true} />} />
       <Route path="/admin/strategies" component={() => <ProtectedRoute component={AdminStrategies} requireAdmin={true} />} />
+      <Route path="/admin/strategies/:id" component={() => <ProtectedRoute component={AdminStrategyDetail} requireAdmin={true} />} />
       <Route path="/admin/deposits" component={() => <ProtectedRoute component={AdminDeposits} requireAdmin={true} />} />
       <Route path="/admin/withdrawals" component={() => <ProtectedRoute component={AdminWithdrawals} requireAdmin={true} />} />
       <Route path="/admin/wallets" component={() => <ProtectedRoute component={AdminWallets} requireAdmin={true} />} />

@@ -1,0 +1,105 @@
+Correção Completa da Página de Estratégias
+
+Analise toda a implementação da rota /admin/strategies e corrija os problemas relacionados ao salvamento dos dados.
+
+Problemas a corrigir
+1. Botão "Salvar" não persiste corretamente os dados
+Verifique todos os formulários e botões de salvar da página.
+Confirme se os eventos onSubmit e onClick estão sendo disparados corretamente.
+Valide se os dados estão chegando corretamente ao backend.
+Verifique possíveis erros de validação silenciosos.
+Confirme se a API está retornando sucesso após o salvamento.
+Certifique-se de que os dados estão sendo gravados corretamente no banco de dados.
+Corrija possíveis problemas de mapeamento entre frontend, backend e banco.
+Fluxo esperado
+Usuário edita ou cria uma estratégia.
+Clica em Salvar.
+Os dados são validados.
+Os dados são enviados para a API.
+A API salva no banco de dados.
+O sistema exibe uma notificação de sucesso.
+O usuário é redirecionado automaticamente para a página específica do item salvo.
+Redirecionamento obrigatório
+
+Após salvar com sucesso:
+
+Se for uma nova estratégia:
+/admin/strategies/{id}
+Se for edição:
+/admin/strategies/{id}
+
+Utilize o id retornado pela API após o salvamento.
+
+Exemplo:
+
+const response = await saveStrategy(data);
+
+if (response.success) {
+  toast.success("Estratégia salva com sucesso!");
+  navigate(`/admin/strategies/${response.data.id}`);
+}
+Tratamento de erros
+Exibir mensagens claras quando ocorrer falha.
+Adicionar logs detalhados no frontend e backend.
+Registrar:
+Payload enviado
+Resposta da API
+Erros de validação
+Erros de banco de dados
+
+Exemplo:
+
+console.log("Payload:", data);
+console.log("Resposta:", response);
+console.error("Erro ao salvar:", error);
+Testes obrigatórios
+
+Após implementar as correções:
+
+Criar uma nova estratégia.
+Editar uma estratégia existente.
+Verificar persistência após atualizar a página.
+Confirmar se os dados permanecem corretos no banco.
+Testar o redirecionamento automático.
+Validar mensagens de sucesso e erro.
+Executar testes automatizados de integração do fluxo completo.
+
+Criar um checklist final exibindo:
+
+ Criação funcionando
+ Edição funcionando
+ Salvamento no banco funcionando
+ Redirecionamento funcionando
+ Mensagens de erro funcionando
+ Testes executados com sucesso
+Ajuste visual dos cards
+
+Atualize todos os cards da área administrativa para terem bordas levemente douradas, mantendo o tema escuro atual.
+
+Requisitos visuais
+Borda fina de 1px.
+Cor dourada discreta e elegante.
+Efeito sutil de brilho ao passar o mouse.
+Manter alta legibilidade.
+
+Exemplo:
+
+.card {
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  background: #081225;
+  transition: all 0.2s ease;
+}
+
+.card:hover {
+  border-color: rgba(212, 175, 55, 0.7);
+  box-shadow: 0 0 12px rgba(212, 175, 55, 0.15);
+}
+
+Utilize variáveis globais do tema para evitar cores fixas:
+
+--card-border-gold: rgba(212, 175, 55, 0.35);
+--card-border-gold-hover: rgba(212, 175, 55, 0.7);
+
+Aplique o novo estilo de forma consistente em todos os cards da área administrativa.
+
+Ao finalizar, execute testes completos e apresente um relatório informando quais arquivos foram alterados e quais problemas foram corrigidos.
