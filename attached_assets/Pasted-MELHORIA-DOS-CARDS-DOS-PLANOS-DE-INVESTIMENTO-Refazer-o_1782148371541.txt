@@ -1,0 +1,129 @@
+MELHORIA DOS CARDS DOS PLANOS DE INVESTIMENTO
+
+Refazer o layout dos cards dos planos para seguir o mesmo padrão visual profissional mostrado na referência enviada.
+
+NOVO LAYOUT DOS CARDS
+
+Cada card de plano deve exibir:
+
+Cabeçalho
+Nome do Plano
+Status do plano (Ativo)
+Botão "Assinar" ou "Investir"
+Informações Principais
+Valor do Plano
+Exemplo:
+R$ 100,00
+Rentabilidade Diária
+Exemplo:
+2,97% ao dia
+Retorno Máximo
+Exemplo:
+200%
+Prazo do Plano
+Exemplo:
+90 Dias
+Exemplo Visual
+
+PLANO BRONZE
+
+R$ 100,00
+
++2,97%
+
+Rentabilidade Diária
+
+200%
+
+Retorno Máximo
+
+90 Dias
+
+Prazo
+
+[INVESTIR AGORA]
+
+PLANO PRATA
+
+R$ 500,00
+
++3,20%
+
+Rentabilidade Diária
+
+200%
+
+Retorno Máximo
+
+120 Dias
+
+Prazo
+
+[INVESTIR AGORA]
+
+PLANO OURO
+
+R$ 1.000,00
+
++3,50%
+
+Rentabilidade Diária
+
+200%
+
+Retorno Máximo
+
+180 Dias
+
+Prazo
+
+[INVESTIR AGORA]
+
+DESIGN
+Seguir exatamente o estilo visual da imagem de referência.
+Fundo escuro elegante.
+Bordas douradas discretas.
+Efeito hover suave.
+Cards responsivos para desktop e celular.
+Todos os cards com o mesmo tamanho.
+Visual premium e profissional.
+Destaque para o valor do plano.
+Destaque para a rentabilidade diária em verde.
+Divisores verticais entre as informações, semelhante ao modelo da imagem.
+INTEGRAÇÃO COM ADMINISTRAÇÃO
+
+Todos os dados devem ser carregados diretamente do banco de dados e do painel administrativo:
+
+Nome do plano
+Valor do plano
+Rentabilidade diária
+Prazo
+Retorno máximo
+
+Qualquer alteração feita pelo administrador deve refletir automaticamente nos cards exibidos para os usuários.
+
+BANCO DE DADOS
+
+Garantir que os cards utilizem apenas dados dinâmicos vindos do banco de dados.
+
+Não utilizar valores fixos no frontend.
+
+RESULTADO ESPERADO
+
+✔ Layout semelhante ao modelo enviado.
+
+✔ Nome do plano destacado.
+
+✔ Valor do plano destacado.
+
+✔ Rentabilidade diária destacada.
+
+✔ Retorno máximo exibido.
+
+✔ Prazo do plano exibido.
+
+✔ Design premium com bordas douradas discretas.
+
+✔ Integração total com painel administrativo e banco de dados.
+
+✔ Responsivo e totalmente funcional.

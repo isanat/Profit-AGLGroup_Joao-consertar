@@ -87,6 +87,9 @@ export function formatStrategy(s: typeof strategiesTable.$inferSelect) {
     maxDrawdown: Number(s.maxDrawdown),
     totalReturnPct: Number(s.totalReturnPct),
     monthlyReturnPct: Number(s.monthlyReturnPct),
+    dailyProfitPercent: Number(s.dailyProfitPercent),
+    maxReturnPct: Number(s.maxReturnPct),
+    durationDays: s.durationDays,
     status: s.status, startDate: s.startDate, createdAt: s.createdAt,
   };
 }

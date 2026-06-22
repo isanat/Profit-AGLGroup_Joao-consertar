@@ -53,6 +53,9 @@ export default function AdminStrategies() {
       sharePrice: Number(formData.sharePrice) || 100,
       totalShares: Number(formData.totalShares) || 1000,
       minInvestment: Number(formData.minInvestment) || 100,
+      dailyProfitPercent: Number(formData.dailyProfitPercent) || 0,
+      maxReturnPct: Number(formData.maxReturnPct) || 200,
+      durationDays: Number(formData.durationDays) || 90,
     };
     try {
       const result = await createStrategy.mutateAsync({ data: payload as any });
@@ -75,6 +78,9 @@ export default function AdminStrategies() {
     if (formData.minInvestment !== undefined) payload.minInvestment = Number(formData.minInvestment);
     if (formData.sharePrice !== undefined) payload.sharePrice = Number(formData.sharePrice);
     if (formData.status !== undefined) payload.status = formData.status;
+    if (formData.dailyProfitPercent !== undefined) payload.dailyProfitPercent = Number(formData.dailyProfitPercent);
+    if (formData.maxReturnPct !== undefined) payload.maxReturnPct = Number(formData.maxReturnPct);
+    if (formData.durationDays !== undefined) payload.durationDays = Number(formData.durationDays);
     try {
       await updateStrategy.mutateAsync({ id: editingId, data: payload as any });
       toast.success("Estratégia atualizada com sucesso!");
@@ -291,6 +297,42 @@ export default function AdminStrategies() {
                   min="0"
                   value={formData.minInvestment ?? ""}
                   onChange={(e) => field("minInvestment", e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Rentab. Diária (%)</label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={formData.dailyProfitPercent ?? ""}
+                  onChange={(e) => field("dailyProfitPercent", e.target.value)}
+                  placeholder="Ex: 2.97"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Retorno Máximo (%)</label>
+                <Input
+                  type="number"
+                  step="1"
+                  min="0"
+                  value={formData.maxReturnPct ?? ""}
+                  onChange={(e) => field("maxReturnPct", e.target.value)}
+                  placeholder="Ex: 200"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Prazo (dias)</label>
+                <Input
+                  type="number"
+                  step="1"
+                  min="1"
+                  value={formData.durationDays ?? ""}
+                  onChange={(e) => field("durationDays", e.target.value)}
+                  placeholder="Ex: 90"
                 />
               </div>
             </div>
