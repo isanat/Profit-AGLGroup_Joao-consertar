@@ -43,7 +43,7 @@ export default function ResetPassword() {
         toast.success("Password reset successfully. You can now login.");
         setLocation("/login");
       },
-      onError: (err) => {
+      onError: (err: any) => {
         toast.error(err.data?.error || "Failed to reset password");
       }
     });

@@ -30,137 +30,117 @@ export default function AdminSettings() {
   }
 
   const handleSave = () => {
-    updateSettings.mutate({ data: formData }, {
-      onSuccess: () => {
-        toast.success("Settings updated successfully");
-        queryClient.invalidateQueries({ queryKey: getGetAdminSettingsQueryKey() });
+    updateSettings.mutate(
+      { data: formData },
+      {
+        onSuccess: () => {
+          toast.success("Configurações atualizadas com sucesso");
+          queryClient.invalidateQueries({ queryKey: getGetAdminSettingsQueryKey() });
+        },
+        onError: (err: any) => toast.error(err?.data?.error || err?.message || "Erro ao atualizar configurações"),
       },
-      onError: (err) => {
-        toast.error(err.data?.error || "Failed to update settings");
-      }
-    });
+    );
   };
+
+  const field = (key: string, value: any) => setFormData((prev: any) => ({ ...prev, [key]: value }));
 
   return (
     <div className="space-y-6 max-w-3xl">
       <div>
-        <h2 className="text-3xl font-bold tracking-tight">Platform Settings</h2>
-        <p className="text-muted-foreground">Configure global application parameters.</p>
+        <h2 className="text-3xl font-bold tracking-tight">Configurações da Plataforma</h2>
+        <p className="text-muted-foreground">Configure parâmetros globais da aplicação.</p>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Configuration</CardTitle>
-          <CardDescription>Adjust fees, limits, and system toggles.</CardDescription>
+          <CardTitle>Configuração</CardTitle>
+          <CardDescription>Ajuste taxas, limites e interruptores do sistema.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium">Withdrawal Fee (%)</label>
-              <Input 
-                type="number" 
-                step="0.01" 
-                value={formData.withdrawalFeePercent ?? 0} 
-                onChange={e => setFormData({...formData, withdrawalFeePercent: parseFloat(e.target.value)})} 
+              <label className="text-sm font-medium">Taxa de Saque (%)</label>
+              <Input
+                type="number"
+                step="0.01"
+                value={formData.withdrawalFeePercent ?? 0}
+                onChange={(e) => field("withdrawalFeePercent", parseFloat(e.target.value) || 0)}
               />
             </div>
-            
             <div className="space-y-2">
-              <label className="text-sm font-medium">Referral Commission (%)</label>
-              <Input 
-                type="number" 
-                step="0.01" 
-                value={formData.referralCommissionPercent ?? 0} 
-                onChange={e => setFormData({...formData, referralCommissionPercent: parseFloat(e.target.value)})} 
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Min Deposit ($)</label>
-              <Input 
-                type="number" 
-                value={formData.minDeposit ?? 0} 
-                onChange={e => setFormData({...formData, minDeposit: parseFloat(e.target.value)})} 
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Min Withdrawal ($)</label>
-              <Input 
-                type="number" 
-                value={formData.minWithdrawal ?? 0} 
-                onChange={e => setFormData({...formData, minWithdrawal: parseFloat(e.target.value)})} 
+              <label className="text-sm font-medium">Comissão de Indicação (%)</label>
+              <Input
+                type="number"
+                step="0.01"
+                value={formData.referralCommissionPercent ?? 0}
+                onChange={(e) => field("referralCommissionPercent", parseFloat(e.target.value) || 0)}
               />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium">Max Withdrawal ($)</label>
-              <Input 
-                type="number" 
-                value={formData.maxWithdrawal ?? 0} 
-                onChange={e => setFormData({...formData, maxWithdrawal: parseFloat(e.target.value)})} 
+              <label className="text-sm font-medium">Depósito Mínimo (R$)</label>
+              <Input
+                type="number"
+                value={formData.minDeposit ?? 0}
+                onChange={(e) => field("minDeposit", parseFloat(e.target.value) || 0)}
               />
             </div>
-            
             <div className="space-y-2">
-              <label className="text-sm font-medium">Referral Levels</label>
-              <Input 
-                type="number" 
-                value={formData.referralLevels ?? 0} 
-                onChange={e => setFormData({...formData, referralLevels: parseInt(e.target.value)})} 
+              <label className="text-sm font-medium">Saque Mínimo (R$)</label>
+              <Input
+                type="number"
+                value={formData.minWithdrawal ?? 0}
+                onChange={(e) => field("minWithdrawal", parseFloat(e.target.value) || 0)}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Saque Máximo (R$)</label>
+              <Input
+                type="number"
+                value={formData.maxWithdrawal ?? 0}
+                onChange={(e) => field("maxWithdrawal", parseFloat(e.target.value) || 0)}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Níveis de Indicação</label>
+              <Input
+                type="number"
+                value={formData.referralLevels ?? 1}
+                onChange={(e) => field("referralLevels", parseInt(e.target.value) || 1)}
               />
             </div>
           </div>
 
           <div className="space-y-4 pt-4 border-t border-border">
-            <h3 className="font-medium text-sm">System Toggles</h3>
-            
-            <div className="flex items-center justify-between p-3 border rounded-md">
-              <div>
-                <p className="font-medium">Maintenance Mode</p>
-                <p className="text-sm text-muted-foreground">Disable user access to the platform</p>
-              </div>
-              <input 
-                type="checkbox" 
-                checked={formData.maintenanceMode || false} 
-                onChange={e => setFormData({...formData, maintenanceMode: e.target.checked})}
-                className="w-5 h-5 rounded border-gray-300" 
-              />
-            </div>
+            <h3 className="font-medium text-sm">Interruptores do Sistema</h3>
 
-            <div className="flex items-center justify-between p-3 border rounded-md">
-              <div>
-                <p className="font-medium">Deposits Enabled</p>
-                <p className="text-sm text-muted-foreground">Allow users to create deposits</p>
+            {[
+              { key: "maintenanceMode", label: "Modo Manutenção", desc: "Desabilita acesso dos usuários à plataforma" },
+              { key: "depositEnabled", label: "Depósitos Habilitados", desc: "Permite que usuários criem depósitos", defaultVal: true },
+              { key: "withdrawalEnabled", label: "Saques Habilitados", desc: "Permite que usuários solicitem saques", defaultVal: true },
+            ].map((toggle) => (
+              <div key={toggle.key} className="flex items-center justify-between p-3 border rounded-md">
+                <div>
+                  <p className="font-medium">{toggle.label}</p>
+                  <p className="text-sm text-muted-foreground">{toggle.desc}</p>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={formData[toggle.key] ?? toggle.defaultVal ?? false}
+                  onChange={(e) => field(toggle.key, e.target.checked)}
+                  className="w-5 h-5 rounded border-gray-300"
+                />
               </div>
-              <input 
-                type="checkbox" 
-                checked={formData.depositEnabled ?? true} 
-                onChange={e => setFormData({...formData, depositEnabled: e.target.checked})}
-                className="w-5 h-5 rounded border-gray-300" 
-              />
-            </div>
-
-            <div className="flex items-center justify-between p-3 border rounded-md">
-              <div>
-                <p className="font-medium">Withdrawals Enabled</p>
-                <p className="text-sm text-muted-foreground">Allow users to request withdrawals</p>
-              </div>
-              <input 
-                type="checkbox" 
-                checked={formData.withdrawalEnabled ?? true} 
-                onChange={e => setFormData({...formData, withdrawalEnabled: e.target.checked})}
-                className="w-5 h-5 rounded border-gray-300" 
-              />
-            </div>
+            ))}
           </div>
 
           <Button onClick={handleSave} disabled={updateSettings.isPending} className="w-full">
-            {updateSettings.isPending ? "Saving..." : "Save Settings"}
+            {updateSettings.isPending ? "Salvando..." : "Salvar Configurações"}
           </Button>
         </CardContent>
       </Card>

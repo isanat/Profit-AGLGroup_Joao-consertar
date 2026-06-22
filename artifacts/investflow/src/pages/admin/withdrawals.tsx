@@ -1,7 +1,11 @@
 import { useState } from "react";
-import { useAdminListWithdrawals, useAdminApproveWithdrawal, getAdminListWithdrawalsQueryKey } from "@workspace/api-client-react";
-import { ApproveWithdrawalInputAction } from "@workspace/api-client-react/src/generated/api.schemas";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  useAdminListWithdrawals,
+  useAdminApproveWithdrawal,
+  getAdminListWithdrawalsQueryKey,
+  type ApproveWithdrawalInputAction,
+} from "@workspace/api-client-react";
+import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -18,10 +22,8 @@ export default function AdminWithdrawals() {
   const queryClient = useQueryClient();
 
   const { data: withdrawalsData, isLoading } = useAdminListWithdrawals({
-    query: {
-      status: statusFilter !== "all" ? statusFilter : undefined,
-      page
-    }
+    status: statusFilter !== "all" ? (statusFilter as any) : undefined,
+    page,
   });
 
   const approveWithdrawal = useAdminApproveWithdrawal();
@@ -32,39 +34,42 @@ export default function AdminWithdrawals() {
 
   const handleProcess = () => {
     if (!processingId) return;
-    approveWithdrawal.mutate({ 
-      id: processingId, 
-      data: { action: actionStatus, transactionHash: txHash, rejectionReason: reason } 
-    }, {
-      onSuccess: () => {
-        toast.success(`Withdrawal ${actionStatus}d`);
-        setProcessingId(null);
-        setTxHash("");
-        setReason("");
-        queryClient.invalidateQueries({ queryKey: getAdminListWithdrawalsQueryKey() });
+    approveWithdrawal.mutate(
+      {
+        id: processingId,
+        data: { action: actionStatus, transactionHash: txHash, rejectionReason: reason },
       },
-      onError: (err) => toast.error(err.data?.error || "Action failed")
-    });
+      {
+        onSuccess: () => {
+          toast.success(`Saque ${actionStatus === "approve" ? "aprovado" : "recusado"}`);
+          setProcessingId(null);
+          setTxHash("");
+          setReason("");
+          queryClient.invalidateQueries({ queryKey: getAdminListWithdrawalsQueryKey() });
+        },
+        onError: (err: any) => toast.error(err?.data?.error || err?.message || "Erro ao processar"),
+      },
+    );
   };
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-end">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">Withdrawals</h2>
-          <p className="text-muted-foreground">Manage user withdrawal requests.</p>
+          <h2 className="text-3xl font-bold tracking-tight">Saques</h2>
+          <p className="text-muted-foreground">Gerencie solicitações de saque dos usuários.</p>
         </div>
         <div className="w-[200px]">
           <Select value={statusFilter} onValueChange={(val) => { setStatusFilter(val); setPage(1); }}>
             <SelectTrigger>
-              <SelectValue placeholder="Filter Status" />
+              <SelectValue placeholder="Filtrar Status" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All</SelectItem>
-              <SelectItem value="pending">Pending</SelectItem>
-              <SelectItem value="approved">Approved</SelectItem>
-              <SelectItem value="completed">Completed</SelectItem>
-              <SelectItem value="rejected">Rejected</SelectItem>
+              <SelectItem value="all">Todos</SelectItem>
+              <SelectItem value="pending">Pendente</SelectItem>
+              <SelectItem value="approved">Aprovado</SelectItem>
+              <SelectItem value="completed">Concluído</SelectItem>
+              <SelectItem value="rejected">Recusado</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -74,33 +79,35 @@ export default function AdminWithdrawals() {
         <CardContent className="pt-6">
           {isLoading ? (
             <div className="space-y-2">
-              {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-12 w-full" />)}
+              {[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-12 w-full" />)}
             </div>
           ) : (
             <>
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>User ID</TableHead>
-                    <TableHead>Method & Address</TableHead>
-                    <TableHead>Amount (Net)</TableHead>
+                    <TableHead>Data</TableHead>
+                    <TableHead>Usuário ID</TableHead>
+                    <TableHead>Método e Endereço</TableHead>
+                    <TableHead>Valor (Líquido)</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {withdrawalsData?.data.map((w) => (
+                  {withdrawalsData?.data?.map((w) => (
                     <TableRow key={w.id}>
-                      <TableCell className="whitespace-nowrap">{new Date(w.createdAt).toLocaleString()}</TableCell>
+                      <TableCell className="whitespace-nowrap">{new Date(w.createdAt).toLocaleString("pt-BR")}</TableCell>
                       <TableCell>{w.userId}</TableCell>
                       <TableCell>
                         <div className="font-medium uppercase">{w.method}</div>
                         <div className="text-xs text-muted-foreground font-mono">{w.walletAddress}</div>
                       </TableCell>
                       <TableCell>
-                        <div className="font-medium">${w.amount.toFixed(2)}</div>
-                        <div className="text-xs text-muted-foreground">Net: ${w.netAmount.toFixed(2)} (Fee: ${w.fee.toFixed(2)})</div>
+                        <div className="font-medium">R$ {Number(w.amount ?? 0).toFixed(2)}</div>
+                        <div className="text-xs text-muted-foreground">
+                          Líq: R$ {Number(w.netAmount ?? 0).toFixed(2)} (Taxa: R$ {Number(w.fee ?? 0).toFixed(2)})
+                        </div>
                       </TableCell>
                       <TableCell>
                         <Badge variant={w.status === "completed" || w.status === "approved" ? "default" : w.status === "pending" ? "outline" : "destructive"}>
@@ -109,23 +116,27 @@ export default function AdminWithdrawals() {
                       </TableCell>
                       <TableCell className="text-right">
                         {w.status === "pending" && (
-                          <Button size="sm" onClick={() => { setProcessingId(w.id); setActionStatus("approve"); }}>Review</Button>
+                          <Button size="sm" onClick={() => { setProcessingId(w.id); setActionStatus("approve"); }}>
+                            Revisar
+                          </Button>
                         )}
                       </TableCell>
                     </TableRow>
                   ))}
-                  {withdrawalsData?.data.length === 0 && (
+                  {(!withdrawalsData?.data || withdrawalsData.data.length === 0) && (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">No withdrawals found.</TableCell>
+                      <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                        Nenhum saque encontrado.
+                      </TableCell>
                     </TableRow>
                   )}
                 </TableBody>
               </Table>
               {withdrawalsData && withdrawalsData.totalPages > 1 && (
                 <div className="flex justify-between items-center pt-4">
-                  <Button variant="outline" disabled={page === 1} onClick={() => setPage(p => p - 1)}>Previous</Button>
-                  <span className="text-sm text-muted-foreground">Page {page} of {withdrawalsData.totalPages}</span>
-                  <Button variant="outline" disabled={page === withdrawalsData.totalPages} onClick={() => setPage(p => p + 1)}>Next</Button>
+                  <Button variant="outline" disabled={page === 1} onClick={() => setPage((p) => p - 1)}>Anterior</Button>
+                  <span className="text-sm text-muted-foreground">Página {page} de {withdrawalsData.totalPages}</span>
+                  <Button variant="outline" disabled={page === withdrawalsData.totalPages} onClick={() => setPage((p) => p + 1)}>Próxima</Button>
                 </div>
               )}
             </>
@@ -136,36 +147,40 @@ export default function AdminWithdrawals() {
       <Dialog open={!!processingId} onOpenChange={(open) => !open && setProcessingId(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Review Withdrawal #{processingId}</DialogTitle>
+            <DialogTitle>Revisar Saque #{processingId}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium">Action</label>
+              <label className="text-sm font-medium">Ação</label>
               <Select value={actionStatus} onValueChange={(val: any) => setActionStatus(val)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="approve">Approve / Complete</SelectItem>
-                  <SelectItem value="reject">Reject</SelectItem>
+                  <SelectItem value="approve">Aprovar / Concluir</SelectItem>
+                  <SelectItem value="reject">Recusar</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             {actionStatus === "approve" && (
               <div className="space-y-2">
-                <label className="text-sm font-medium">Transaction Hash (Optional)</label>
-                <Input value={txHash} onChange={e => setTxHash(e.target.value)} placeholder="0x..." />
+                <label className="text-sm font-medium">Hash da Transação (Opcional)</label>
+                <Input value={txHash} onChange={(e) => setTxHash(e.target.value)} placeholder="0x..." />
               </div>
             )}
             {actionStatus === "reject" && (
               <div className="space-y-2">
-                <label className="text-sm font-medium">Rejection Reason</label>
-                <Input value={reason} onChange={e => setReason(e.target.value)} placeholder="Violation of terms..." />
+                <label className="text-sm font-medium">Motivo da Recusa</label>
+                <Input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Violação dos termos..." />
               </div>
             )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setProcessingId(null)}>Cancel</Button>
-            <Button onClick={handleProcess} disabled={approveWithdrawal.isPending} variant={actionStatus === "approve" ? "default" : "destructive"}>
-              Submit
+            <Button variant="outline" onClick={() => setProcessingId(null)}>Cancelar</Button>
+            <Button
+              onClick={handleProcess}
+              disabled={approveWithdrawal.isPending}
+              variant={actionStatus === "approve" ? "default" : "destructive"}
+            >
+              {approveWithdrawal.isPending ? "Processando..." : "Confirmar"}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -12,11 +12,9 @@ export default function Transactions() {
   const [page, setPage] = useState(1);
 
   const { data: pageData, isLoading } = useListTransactions({
-    query: {
-      type: typeFilter === "all" ? undefined : typeFilter,
-      page,
-      limit: 20
-    }
+    type: typeFilter === "all" ? undefined : typeFilter,
+    page,
+    limit: 20,
   });
 
   return (

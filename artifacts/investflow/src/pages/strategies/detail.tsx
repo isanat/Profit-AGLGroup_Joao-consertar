@@ -26,8 +26,8 @@ export default function StrategyDetail() {
 
   const { data: performance, isLoading: isLoadingPerf } = useFetchStrategyPerformance(strategyId, {
     query: {
-      enabled: !!strategyId
-    }
+      enabled: !!strategyId,
+    } as any,
   });
 
   const buyPositionMutation = useBuyPosition();

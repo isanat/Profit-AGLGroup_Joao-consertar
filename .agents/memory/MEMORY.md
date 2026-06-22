@@ -1,2 +1,6 @@
 - [InvestFlow seed runner](investflow-seed.md) — tsx binary path for running seed without catalog issues
 - [InvestFlow deep import fix](investflow-deep-import.md) — design subagents use deep package imports that break Vite; always check and fix to main export
+- [Orval hook call signatures](orval-hook-signatures.md) — hooks gerados usam params planos, NÃO aninhados em `query:`; query options vão no 2º argumento
+- [React Query v5 + Orval options cast](rq5-orval-options.md) — UseQueryOptions requer `queryKey` no tipo RQ v5; usar `as any` no objeto de opções passado ao hook
+- [ErrorType e handlers de erro](errortype-handlers.md) — ErrorType<unknown> é ApiError<unknown>; acesso `.data?.error` requer `(err: any)` no onError
+- [Error Boundary no app](error-boundary.md) — ErrorBoundary em src/components/error-boundary.tsx envolve toda a app em main.tsx; sem ele qualquer erro de render = tela branca

@@ -29,7 +29,7 @@ export default function ForgotPassword() {
         toast.success("Password reset instructions sent to your email.");
         setLocation("/login");
       },
-      onError: (err) => {
+      onError: (err: any) => {
         toast.error(err.data?.error || "Failed to send reset instructions");
       }
     });

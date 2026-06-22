@@ -25,7 +25,7 @@ export default function VerifyEmail() {
       onSuccess: () => {
         setStatus("success");
       },
-      onError: (err) => {
+      onError: (err: any) => {
         setStatus("error");
         setErrorMsg(err.data?.error || "Verification failed");
       }

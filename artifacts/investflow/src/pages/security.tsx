@@ -40,7 +40,7 @@ export default function Security() {
         toast.success("Password updated successfully");
         pwdForm.reset();
       },
-      onError: (err) => {
+      onError: (err: any) => {
         toast.error(err.data?.error || "Failed to update password");
       }
     });
@@ -51,7 +51,7 @@ export default function Security() {
       onSuccess: (data) => {
         setTwoFactorSetup(data);
       },
-      onError: (err) => {
+      onError: (err: any) => {
         toast.error(err.data?.error || "Failed to setup 2FA");
       }
     });
@@ -64,7 +64,7 @@ export default function Security() {
         setTwoFactorSetup(null);
         window.location.reload(); // Quick refresh to update user context
       },
-      onError: (err) => {
+      onError: (err: any) => {
         toast.error(err.data?.error || "Invalid code");
       }
     });

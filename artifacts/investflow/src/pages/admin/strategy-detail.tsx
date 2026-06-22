@@ -124,25 +124,25 @@ export default function AdminStrategyDetail() {
   const stats = [
     {
       label: "Preco da Cota",
-      value: `R$ ${strategy.sharePrice.toFixed(2)}`,
+      value: `R$ ${Number(strategy.sharePrice ?? 0).toFixed(2)}`,
       icon: DollarSign,
       color: "text-emerald-400",
     },
     {
       label: "AUM Total",
-      value: `R$ ${strategy.aum.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
+      value: `R$ ${Number(strategy.aum ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
       icon: BarChart3,
       color: "text-amber-400",
     },
     {
       label: "Cotas Disponíveis",
-      value: `${strategy.availableShares} / ${strategy.totalShares}`,
+      value: `${strategy.availableShares ?? 0} / ${strategy.totalShares ?? 0}`,
       icon: Users,
       color: "text-blue-400",
     },
     {
       label: "Retorno Total",
-      value: `${strategy.totalReturnPct.toFixed(2)}%`,
+      value: `${Number(strategy.totalReturnPct ?? 0).toFixed(2)}%`,
       icon: TrendingUp,
       color: "text-emerald-400",
     },
@@ -217,15 +217,15 @@ export default function AdminStrategyDetail() {
             <div className="grid grid-cols-2 gap-4 pt-2">
               <div>
                 <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Investimento Mínimo</p>
-                <p className="font-medium">R$ {strategy.minInvestment.toFixed(2)}</p>
+                <p className="font-medium">R$ {Number(strategy.minInvestment ?? 0).toFixed(2)}</p>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Retorno Mensal</p>
-                <p className="font-medium text-emerald-400">{strategy.monthlyReturnPct.toFixed(2)}%</p>
+                <p className="font-medium text-emerald-400">{Number(strategy.monthlyReturnPct ?? 0).toFixed(2)}%</p>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Max Drawdown</p>
-                <p className="font-medium text-red-400">-{strategy.maxDrawdown.toFixed(2)}%</p>
+                <p className="font-medium text-red-400">-{Number(strategy.maxDrawdown ?? 0).toFixed(2)}%</p>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Início</p>
@@ -243,22 +243,22 @@ export default function AdminStrategyDetail() {
             <div className="space-y-3">
               <div className="flex justify-between items-center">
                 <span className="text-sm text-muted-foreground">Total de Cotas</span>
-                <span className="font-medium">{strategy.totalShares.toLocaleString("pt-BR")}</span>
+                <span className="font-medium">{Number(strategy.totalShares ?? 0).toLocaleString("pt-BR")}</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-sm text-muted-foreground">Cotas Disponíveis</span>
-                <span className="font-medium text-emerald-400">{strategy.availableShares.toLocaleString("pt-BR")}</span>
+                <span className="font-medium text-emerald-400">{Number(strategy.availableShares ?? 0).toLocaleString("pt-BR")}</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-sm text-muted-foreground">Cotas Vendidas</span>
-                <span className="font-medium">{(strategy.totalShares - strategy.availableShares).toLocaleString("pt-BR")}</span>
+                <span className="font-medium">{(Number(strategy.totalShares ?? 0) - Number(strategy.availableShares ?? 0)).toLocaleString("pt-BR")}</span>
               </div>
               <div className="w-full bg-muted rounded-full h-2 mt-2">
                 <div
                   className="bg-emerald-500 h-2 rounded-full transition-all"
                   style={{
-                    width: `${strategy.totalShares > 0
-                      ? ((strategy.totalShares - strategy.availableShares) / strategy.totalShares) * 100
+                    width: `${(strategy.totalShares ?? 0) > 0
+                      ? ((Number(strategy.totalShares ?? 0) - Number(strategy.availableShares ?? 0)) / Number(strategy.totalShares ?? 1)) * 100
                       : 0}%`,
                   }}
                 />
@@ -266,7 +266,7 @@ export default function AdminStrategyDetail() {
               <div className="flex justify-between items-center pt-2 border-t border-border">
                 <span className="text-sm text-muted-foreground">AUM (Assets Under Management)</span>
                 <span className="font-bold text-amber-400">
-                  R$ {strategy.aum.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                  R$ {Number(strategy.aum ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                 </span>
               </div>
             </div>

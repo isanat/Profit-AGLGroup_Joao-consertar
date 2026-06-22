@@ -37,8 +37,8 @@ export default function Deposit() {
         setDepositResult(res);
         toast({ title: "Deposit initiated", description: "Please follow the instructions to complete the payment." });
       },
-      onError: (err) => {
-        toast({ title: "Error", description: err.data?.error || "Failed to initiate deposit", variant: "destructive" });
+      onError: (err: any) => {
+        toast({ title: "Error", description: err?.data?.error || "Failed to initiate deposit", variant: "destructive" });
       }
     });
   };

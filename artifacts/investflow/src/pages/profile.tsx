@@ -47,7 +47,7 @@ export default function Profile() {
         toast.success("Profile updated successfully");
         queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
       },
-      onError: (err) => {
+      onError: (err: any) => {
         toast.error(err.data?.error || "Failed to update profile");
       }
     });
