@@ -70,8 +70,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       {/* Sidebar */}
       <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-card border-r border-border transition-transform transform ${isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"} md:relative md:translate-x-0`}>
         <div className="flex flex-col h-full">
-          <div className="p-6">
-            <h1 className="text-2xl font-bold text-primary tracking-tight">InvestFlow</h1>
+          <div className="p-6 flex items-center">
+            <img src="/logo.png" alt="Alliance Group" className="h-14 w-auto" />
           </div>
           
           <nav className="flex-1 overflow-y-auto p-4 space-y-1">
@@ -109,7 +109,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       {/* Main Content */}
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <header className="h-16 flex items-center justify-between px-4 sm:px-6 lg:px-8 bg-card border-b border-border md:hidden">
-          <h1 className="text-xl font-bold text-primary">InvestFlow</h1>
+          <img src="/logo.png" alt="Alliance Group" className="h-9 w-auto" />
           <Button variant="ghost" size="icon" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
             <Menu className="h-6 w-6" />
           </Button>

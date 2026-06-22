@@ -51,7 +51,8 @@ export default function Register() {
     <div className="min-h-screen flex items-center justify-center bg-background p-4 py-12">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-primary tracking-tight">InvestFlow</h1>
+          <img src="/logo.png" alt="Alliance Group" className="h-24 w-auto mx-auto mb-2" />
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">Alliance Group</h1>
           <p className="text-muted-foreground mt-2">Create your investment account</p>
         </div>
 
