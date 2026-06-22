@@ -85,31 +85,25 @@ export default function AdminDailyProfit() {
       toast.error("Selecione pelo menos um dia da semana");
       return;
     }
-    console.log("[DailyProfit] Salvando configurações:", { percentage: pct, executionTime, active, days: selectedDays });
     try {
       await saveSettings.mutateAsync({
         data: { percentage: pct, executionTime, active, days: selectedDays },
       });
       toast.success("Configurações salvas com sucesso!");
       queryClient.invalidateQueries({ queryKey: getAdminGetDailyProfitSettingsQueryKey() });
-      console.log("[DailyProfit] Configurações salvas");
     } catch (err: any) {
-      console.error("[DailyProfit] Erro ao salvar:", err);
       toast.error(err?.data?.error || "Erro ao salvar configurações");
     }
   };
 
   const handleExecute = async () => {
-    console.log("[DailyProfit] Executando distribuição manual");
     try {
       const result = await executeProfit.mutateAsync(undefined as any);
-      console.log("[DailyProfit] Resultado:", result);
       toast.success(
         `Distribuição concluída: ${result.processed} posições processadas, R$ ${result.totalProfit.toFixed(2)} distribuídos`,
       );
       queryClient.invalidateQueries({ queryKey: getAdminGetDailyProfitHistoryQueryKey() });
     } catch (err: any) {
-      console.error("[DailyProfit] Erro ao executar:", err);
       toast.error(err?.data?.error || "Erro ao executar distribuição");
     }
   };

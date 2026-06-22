@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/lib/auth";
 import { AppLayout } from "@/components/layout/app-layout";
 import { setAuthTokenGetter } from "@workspace/api-client-react";
+import { getSmartAccessToken } from "@/lib/auth";
 
 import Login from "@/pages/auth/login";
 import Register from "@/pages/auth/register";
@@ -39,8 +40,8 @@ import AdminDailyProfit from "@/pages/admin/daily-profit";
 
 import NotFound from "@/pages/not-found";
 
-// Setup token injection for api client
-setAuthTokenGetter(() => localStorage.getItem("accessToken"));
+// Setup smart token getter — transparently refreshes when token is near expiry
+setAuthTokenGetter(getSmartAccessToken);
 
 const queryClient = new QueryClient({
   defaultOptions: {

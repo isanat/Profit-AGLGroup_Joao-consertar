@@ -62,15 +62,12 @@ export default function AdminStrategyDetail() {
     if (formData.sharePrice !== undefined) payload.sharePrice = Number(formData.sharePrice);
     if (formData.status !== undefined) payload.status = formData.status;
 
-    console.log("[StrategyDetail] Payload edição:", payload);
     try {
       const result = await updateStrategy.mutateAsync({ id: strategyId, data: payload as any });
-      console.log("[StrategyDetail] Resposta edição:", result);
       toast.success("Estratégia atualizada com sucesso!");
       queryClient.invalidateQueries({ queryKey: getAdminListStrategiesQueryKey() });
       setIsEditOpen(false);
     } catch (err: any) {
-      console.error("[StrategyDetail] Erro ao atualizar:", err);
       toast.error(err?.data?.error || err?.message || "Erro ao atualizar estratégia");
     }
   };
@@ -84,15 +81,12 @@ export default function AdminStrategyDetail() {
       yieldPercentage: Number(formData.yieldPercentage),
       description: formData.description,
     };
-    console.log("[StrategyDetail] Payload yield:", payload);
     try {
       await applyYield.mutateAsync({ id: strategyId, data: payload as any });
-      console.log("[StrategyDetail] Yield aplicado");
       toast.success("Rentabilidade aplicada com sucesso!");
       queryClient.invalidateQueries({ queryKey: getAdminListStrategiesQueryKey() });
       setIsYieldOpen(false);
     } catch (err: any) {
-      console.error("[StrategyDetail] Erro ao aplicar yield:", err);
       toast.error(err?.data?.error || err?.message || "Erro ao aplicar rentabilidade");
     }
   };

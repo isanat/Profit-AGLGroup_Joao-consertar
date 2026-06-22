@@ -54,16 +54,13 @@ export default function AdminStrategies() {
       totalShares: Number(formData.totalShares) || 1000,
       minInvestment: Number(formData.minInvestment) || 100,
     };
-    console.log("[AdminStrategies] Payload criação:", payload);
     try {
       const result = await createStrategy.mutateAsync({ data: payload as any });
-      console.log("[AdminStrategies] Resposta criação:", result);
       toast.success("Estratégia criada com sucesso!");
       setIsCreateOpen(false);
       queryClient.invalidateQueries({ queryKey: getAdminListStrategiesQueryKey() });
       navigate(`/admin/strategies/${result.id}`);
     } catch (err: any) {
-      console.error("[AdminStrategies] Erro ao criar estratégia:", err);
       toast.error(err?.data?.error || err?.message || "Erro ao criar estratégia");
     }
   };
@@ -78,16 +75,13 @@ export default function AdminStrategies() {
     if (formData.minInvestment !== undefined) payload.minInvestment = Number(formData.minInvestment);
     if (formData.sharePrice !== undefined) payload.sharePrice = Number(formData.sharePrice);
     if (formData.status !== undefined) payload.status = formData.status;
-    console.log("[AdminStrategies] Payload edição:", payload);
     try {
-      const result = await updateStrategy.mutateAsync({ id: editingId, data: payload as any });
-      console.log("[AdminStrategies] Resposta edição:", result);
+      await updateStrategy.mutateAsync({ id: editingId, data: payload as any });
       toast.success("Estratégia atualizada com sucesso!");
       queryClient.invalidateQueries({ queryKey: getAdminListStrategiesQueryKey() });
       setEditingId(null);
       navigate(`/admin/strategies/${editingId}`);
     } catch (err: any) {
-      console.error("[AdminStrategies] Erro ao atualizar estratégia:", err);
       toast.error(err?.data?.error || err?.message || "Erro ao atualizar estratégia");
     }
   };
@@ -102,15 +96,12 @@ export default function AdminStrategies() {
       yieldPercentage: Number(formData.yieldPercentage),
       description: formData.description,
     };
-    console.log("[AdminStrategies] Payload yield:", payload);
     try {
       await applyYield.mutateAsync({ id: yieldId, data: payload as any });
-      console.log("[AdminStrategies] Yield aplicado com sucesso");
       toast.success("Rentabilidade aplicada com sucesso!");
       setYieldId(null);
       queryClient.invalidateQueries({ queryKey: getAdminListStrategiesQueryKey() });
     } catch (err: any) {
-      console.error("[AdminStrategies] Erro ao aplicar yield:", err);
       toast.error(err?.data?.error || err?.message || "Erro ao aplicar rentabilidade");
     }
   };
