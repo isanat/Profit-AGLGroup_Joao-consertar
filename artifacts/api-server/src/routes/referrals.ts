@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, usersTable, referralsTable, commissionsTable } from "@workspace/db";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, inArray } from "drizzle-orm";
 import { requireAuth, type AuthRequest } from "../middlewares/auth";
 import { getSetting } from "../lib/settings";
 
@@ -15,16 +15,19 @@ router.get("/", requireAuth, async (req: AuthRequest, res) => {
     const refs = await db.select().from(referralsTable).where(eq(referralsTable.referrerId, req.userId!));
     const refUserIds = refs.map(r => r.referredId);
 
-    const referredUsers = refUserIds.length > 0
-      ? await db.select().from(usersTable)
-      : [];
     const allUsers = await db.select().from(usersTable);
     const userMap = Object.fromEntries(allUsers.map(u => [u.id, u]));
 
+    // Paid commissions earned by this user
     const paidCommissions = await db.select().from(commissionsTable)
       .where(and(eq(commissionsTable.userId, req.userId!), eq(commissionsTable.status, "paid")));
-    const pendingCommissions = await db.select().from(commissionsTable)
-      .where(and(eq(commissionsTable.userId, req.userId!), eq(commissionsTable.status, "pending")));
+
+    // Group commissions by fromUserId for per-referral totals
+    const commissionByFromUser: Record<number, number> = {};
+    for (const c of paidCommissions) {
+      const prev = commissionByFromUser[c.fromUserId] ?? 0;
+      commissionByFromUser[c.fromUserId] = prev + Number(c.amount);
+    }
 
     const commissionRate = Number(await getSetting("referralCommissionPercent")) || 5;
     const baseUrl = process.env.REPLIT_DOMAINS
@@ -34,9 +37,12 @@ router.get("/", requireAuth, async (req: AuthRequest, res) => {
     const refMembers = refs.map(r => {
       const u = userMap[r.referredId];
       return u ? {
-        id: u.id, name: u.name, email: u.email, status: u.status,
+        id: u.id,
+        name: u.name,
+        email: u.email,
+        status: u.status,
         totalInvested: Number(u.totalInvested),
-        commissionGenerated: 0,
+        commissionGenerated: commissionByFromUser[u.id] ?? 0,
         joinedAt: u.createdAt,
       } : null;
     }).filter(Boolean);
@@ -47,7 +53,7 @@ router.get("/", requireAuth, async (req: AuthRequest, res) => {
       totalReferrals: refs.length,
       activeReferrals: refMembers.filter(r => r?.status === "active").length,
       totalCommissionEarned: paidCommissions.reduce((a, c) => a + Number(c.amount), 0),
-      pendingCommission: pendingCommissions.reduce((a, c) => a + Number(c.amount), 0),
+      pendingCommission: 0,
       commissionRate,
       referrals: refMembers,
     });
@@ -92,14 +98,21 @@ router.get("/commissions", requireAuth, async (req: AuthRequest, res) => {
     const commissions = await db.select().from(commissionsTable)
       .where(eq(commissionsTable.userId, req.userId!))
       .orderBy(desc(commissionsTable.createdAt));
+
     const allUsers = await db.select().from(usersTable);
     const userMap = Object.fromEntries(allUsers.map(u => [u.id, u]));
 
     res.json(commissions.map(c => ({
-      id: c.id, fromUserId: c.fromUserId,
-      fromUserName: userMap[c.fromUserId]?.name ?? "Unknown",
-      amount: Number(c.amount), rate: Number(c.rate),
-      level: c.level, status: c.status, paidAt: c.paidAt, createdAt: c.createdAt,
+      id: c.id,
+      fromUserId: c.fromUserId,
+      fromUserName: userMap[c.fromUserId]?.name ?? "Usuário",
+      amount: Number(c.amount),
+      rate: Number(c.rate),
+      level: c.level,
+      status: c.status,
+      depositId: c.referenceId,
+      paidAt: c.paidAt,
+      createdAt: c.createdAt,
     })));
   } catch (err) {
     req.log.error({ err }, "Commissions error");

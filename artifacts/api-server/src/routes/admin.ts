@@ -291,7 +291,44 @@ router.get("/deposits", async (req: AuthRequest, res) => {
     if (status) deposits = deposits.filter(d => d.status === status);
     const total = deposits.length;
     const data = deposits.slice((pageNum - 1) * limit, pageNum * limit);
-    res.json({ data: data.map(d => ({ id: d.id, userId: d.userId, method: d.method, amount: Number(d.amount), status: d.status, walletAddress: d.walletAddress, transactionHash: d.transactionHash, qrCodeUrl: d.qrCodeUrl, confirmedAt: d.confirmedAt, createdAt: d.createdAt })), total, page: pageNum, totalPages: Math.ceil(total / limit) });
+
+    // Enrich with user name, referrer info and commission status
+    const allUsers = await db.select().from(usersTable);
+    const userMap = Object.fromEntries(allUsers.map(u => [u.id, u]));
+    const allCommissions = await db.select().from(commissionsTable);
+
+    const enriched = data.map(d => {
+      const depositor = userMap[d.userId];
+      const referrerId = depositor?.referredBy ?? null;
+      const referrer = referrerId ? userMap[referrerId] : null;
+      const commission = allCommissions.find(
+        c => c.fromUserId === d.userId && c.referenceId === d.id,
+      );
+      const commissionRate = commission ? Number(commission.rate) : null;
+      const commissionAmount = commission ? Number(commission.amount) : null;
+
+      return {
+        id: d.id,
+        userId: d.userId,
+        userName: depositor?.name ?? null,
+        userEmail: depositor?.email ?? null,
+        method: d.method,
+        amount: Number(d.amount),
+        status: d.status,
+        walletAddress: d.walletAddress,
+        transactionHash: d.transactionHash,
+        qrCodeUrl: d.qrCodeUrl,
+        confirmedAt: d.confirmedAt,
+        createdAt: d.createdAt,
+        referrerId,
+        referrerName: referrer?.name ?? null,
+        commissionRate,
+        commissionAmount,
+        commissionStatus: commission ? commission.status : referrerId ? "pendente" : null,
+      };
+    });
+
+    res.json({ data: enriched, total, page: pageNum, totalPages: Math.ceil(total / limit) });
   } catch (err) {
     req.log.error({ err }, "Admin list deposits error");
     res.status(500).json({ error: "Internal server error" });

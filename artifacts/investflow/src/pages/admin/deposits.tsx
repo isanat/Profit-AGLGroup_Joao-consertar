@@ -16,6 +16,17 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 
+const fmtBRL = (v: number) =>
+  `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+const METHOD_LABELS: Record<string, string> = {
+  pix: "PIX",
+  usdt_bep20: "USDT BEP20",
+  bitcoin: "Bitcoin",
+  usdc: "USDC",
+  bnb: "BNB",
+};
+
 export default function AdminDeposits() {
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState("pending");
@@ -28,8 +39,16 @@ export default function AdminDeposits() {
 
   const confirmDeposit = useAdminConfirmDeposit();
   const [processingId, setProcessingId] = useState<number | null>(null);
+  const [processingDeposit, setProcessingDeposit] = useState<any>(null);
   const [actionStatus, setActionStatus] = useState<ConfirmDepositInputStatus>("confirmed");
   const [txHash, setTxHash] = useState("");
+
+  const openReview = (d: any) => {
+    setProcessingId(d.id);
+    setProcessingDeposit(d);
+    setActionStatus("confirmed");
+    setTxHash("");
+  };
 
   const handleConfirm = () => {
     if (!processingId) return;
@@ -37,8 +56,13 @@ export default function AdminDeposits() {
       { id: processingId, data: { status: actionStatus, transactionHash: txHash } },
       {
         onSuccess: () => {
-          toast.success(`Depósito ${actionStatus === "confirmed" ? "confirmado" : "recusado"}`);
+          const label = actionStatus === "confirmed" ? "aprovado" : actionStatus === "failed" ? "recusado" : "cancelado";
+          toast.success(`Depósito ${label} com sucesso`);
+          if (actionStatus === "confirmed" && processingDeposit?.referrerName) {
+            toast.info(`Bônus de indicação enviado para ${processingDeposit.referrerName}`);
+          }
           setProcessingId(null);
+          setProcessingDeposit(null);
           setTxHash("");
           queryClient.invalidateQueries({ queryKey: getAdminListDepositsQueryKey() });
         },
@@ -47,12 +71,30 @@ export default function AdminDeposits() {
     );
   };
 
+  const statusBadge = (status: string) => {
+    const map: Record<string, { label: string; className: string }> = {
+      pending:   { label: "Pendente",   className: "border-amber-500/40 text-amber-400" },
+      confirmed: { label: "Confirmado", className: "border-emerald-500/40 text-emerald-400" },
+      failed:    { label: "Falhou",     className: "border-red-500/40 text-red-400" },
+      cancelled: { label: "Cancelado",  className: "border-red-500/40 text-red-400" },
+    };
+    const cfg = map[status] ?? { label: status, className: "" };
+    return <Badge variant="outline" className={cfg.className}>{cfg.label}</Badge>;
+  };
+
+  const commissionBadge = (d: any) => {
+    if (!d.referrerId) return <span className="text-muted-foreground text-xs">—</span>;
+    if (d.commissionStatus === "paid")
+      return <Badge variant="outline" className="border-emerald-500/40 text-emerald-400">Processada</Badge>;
+    return <Badge variant="outline" className="border-amber-500/40 text-amber-400">Pendente</Badge>;
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-end">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Depósitos</h2>
-          <p className="text-muted-foreground">Gerencie solicitações de depósito dos usuários.</p>
+          <p className="text-muted-foreground">Gerencie e aprove solicitações de depósito. O bônus de indicação é creditado automaticamente ao aprovar.</p>
         </div>
         <div className="w-[200px]">
           <Select value={statusFilter} onValueChange={(val) => { setStatusFilter(val); setPage(1); }}>
@@ -64,6 +106,7 @@ export default function AdminDeposits() {
               <SelectItem value="pending">Pendente</SelectItem>
               <SelectItem value="confirmed">Confirmado</SelectItem>
               <SelectItem value="failed">Falhou</SelectItem>
+              <SelectItem value="cancelled">Cancelado</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -81,28 +124,49 @@ export default function AdminDeposits() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Data</TableHead>
-                    <TableHead>Usuário ID</TableHead>
+                    <TableHead>Usuário</TableHead>
                     <TableHead>Método</TableHead>
                     <TableHead>Valor</TableHead>
+                    <TableHead>Indicador</TableHead>
+                    <TableHead>Comissão</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {depositsData?.data?.map((d) => (
+                  {(depositsData?.data as any[])?.map((d) => (
                     <TableRow key={d.id}>
-                      <TableCell className="whitespace-nowrap">{new Date(d.createdAt).toLocaleString("pt-BR")}</TableCell>
-                      <TableCell>{d.userId}</TableCell>
-                      <TableCell className="uppercase">{d.method}</TableCell>
-                      <TableCell className="font-medium">R$ {Number(d.amount ?? 0).toFixed(2)}</TableCell>
-                      <TableCell>
-                        <Badge variant={d.status === "confirmed" ? "default" : d.status === "pending" ? "outline" : "destructive"}>
-                          {d.status}
-                        </Badge>
+                      <TableCell className="whitespace-nowrap text-muted-foreground text-sm">
+                        {new Date(d.createdAt).toLocaleString("pt-BR")}
                       </TableCell>
+                      <TableCell>
+                        <div className="font-medium text-sm">{d.userName ?? `#${d.userId}`}</div>
+                        {d.userEmail && <div className="text-xs text-muted-foreground">{d.userEmail}</div>}
+                      </TableCell>
+                      <TableCell className="font-medium">{METHOD_LABELS[d.method] ?? d.method}</TableCell>
+                      <TableCell className="font-medium text-amber-400">{fmtBRL(Number(d.amount ?? 0))}</TableCell>
+                      <TableCell>
+                        {d.referrerName ? (
+                          <div>
+                            <div className="text-sm font-medium">{d.referrerName}</div>
+                            {d.commissionRate !== null && (
+                              <div className="text-xs text-muted-foreground">
+                                {d.commissionRate}% ={" "}
+                                <span className="text-emerald-400">
+                                  {d.commissionAmount !== null ? fmtBRL(d.commissionAmount) : fmtBRL(Number(d.amount) * d.commissionRate / 100)}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">Sem indicador</span>
+                        )}
+                      </TableCell>
+                      <TableCell>{commissionBadge(d)}</TableCell>
+                      <TableCell>{statusBadge(d.status)}</TableCell>
                       <TableCell className="text-right">
                         {d.status === "pending" && (
-                          <Button size="sm" onClick={() => { setProcessingId(d.id); setActionStatus("confirmed"); }}>
+                          <Button size="sm" onClick={() => openReview(d)}>
                             Revisar
                           </Button>
                         )}
@@ -111,7 +175,7 @@ export default function AdminDeposits() {
                   ))}
                   {(!depositsData?.data || depositsData.data.length === 0) && (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                         Nenhum depósito encontrado.
                       </TableCell>
                     </TableRow>
@@ -130,38 +194,82 @@ export default function AdminDeposits() {
         </CardContent>
       </Card>
 
-      <Dialog open={!!processingId} onOpenChange={(open) => !open && setProcessingId(null)}>
+      {/* Review dialog */}
+      <Dialog open={!!processingId} onOpenChange={(open) => { if (!open) { setProcessingId(null); setProcessingDeposit(null); } }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Revisar Depósito #{processingId}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-4">
+          <div className="space-y-4 py-2">
+            {processingDeposit && (
+              <div className="rounded-md border border-border bg-muted/10 p-3 space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Usuário</span>
+                  <span className="font-medium">{processingDeposit.userName ?? `#${processingDeposit.userId}`}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Valor</span>
+                  <span className="font-medium text-amber-400">{fmtBRL(Number(processingDeposit.amount))}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Método</span>
+                  <span>{METHOD_LABELS[processingDeposit.method] ?? processingDeposit.method}</span>
+                </div>
+                {processingDeposit.referrerName && (
+                  <>
+                    <div className="border-t border-border pt-2 mt-2" />
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Indicador</span>
+                      <span className="font-medium">{processingDeposit.referrerName}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Bônus ao aprovar</span>
+                      <span className="font-medium text-emerald-400">
+                        {processingDeposit.commissionRate}% = {fmtBRL(Number(processingDeposit.amount) * processingDeposit.commissionRate / 100)}
+                      </span>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
             <div className="space-y-2">
               <label className="text-sm font-medium">Ação</label>
               <Select value={actionStatus} onValueChange={(val: any) => setActionStatus(val)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="confirmed">Confirmar</SelectItem>
-                  <SelectItem value="failed">Marcar como Falhou</SelectItem>
+                  <SelectItem value="confirmed">Aprovar depósito</SelectItem>
+                  <SelectItem value="failed">Recusar</SelectItem>
                   <SelectItem value="cancelled">Cancelar</SelectItem>
                 </SelectContent>
               </Select>
             </div>
+
             {actionStatus === "confirmed" && (
               <div className="space-y-2">
                 <label className="text-sm font-medium">Hash da Transação (Opcional)</label>
-                <Input value={txHash} onChange={(e) => setTxHash(e.target.value)} placeholder="0x..." />
+                <Input value={txHash} onChange={(e) => setTxHash(e.target.value)} placeholder="0x..." className="font-mono text-sm" />
+              </div>
+            )}
+
+            {actionStatus === "confirmed" && processingDeposit?.referrerName && (
+              <div className="rounded-md border border-emerald-500/20 bg-emerald-500/5 p-3 text-sm">
+                <p className="text-emerald-400 font-medium">Bônus de indicação será creditado</p>
+                <p className="text-muted-foreground mt-1">
+                  {fmtBRL(Number(processingDeposit.amount) * processingDeposit.commissionRate / 100)} serão creditados automaticamente para{" "}
+                  <span className="text-foreground font-medium">{processingDeposit.referrerName}</span>.
+                </p>
               </div>
             )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setProcessingId(null)}>Cancelar</Button>
+            <Button variant="outline" onClick={() => { setProcessingId(null); setProcessingDeposit(null); }}>Cancelar</Button>
             <Button
               onClick={handleConfirm}
               disabled={confirmDeposit.isPending}
               variant={actionStatus === "confirmed" ? "default" : "destructive"}
             >
-              {confirmDeposit.isPending ? "Processando..." : "Confirmar"}
+              {confirmDeposit.isPending ? "Processando..." : actionStatus === "confirmed" ? "Aprovar" : "Confirmar"}
             </Button>
           </DialogFooter>
         </DialogContent>

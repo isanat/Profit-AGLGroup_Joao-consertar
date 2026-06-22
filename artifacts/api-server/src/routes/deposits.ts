@@ -1,8 +1,9 @@
 import { Router } from "express";
-import { db, depositsTable, usersTable, transactionsTable, platformWalletsTable } from "@workspace/db";
+import { db, depositsTable, usersTable, transactionsTable, platformWalletsTable, commissionsTable, notificationsTable } from "@workspace/db";
 import { eq, and, desc } from "drizzle-orm";
 import { requireAuth, type AuthRequest } from "../middlewares/auth";
 import { auditLog } from "../lib/audit";
+import { getSetting } from "../lib/settings";
 
 const router = Router();
 
@@ -52,7 +53,6 @@ router.post("/", requireAuth, async (req: AuthRequest, res) => {
       res.status(400).json({ error: "Method and amount are required" });
       return;
     }
-    // Get wallet address for this method
     const [wallet] = await db.select().from(platformWalletsTable)
       .where(and(eq(platformWalletsTable.method, method), eq(platformWalletsTable.isActive, true)));
 
@@ -86,7 +86,15 @@ router.get("/:id", requireAuth, async (req: AuthRequest, res) => {
   }
 });
 
-export async function confirmDeposit(depositId: number, adminUserId: number, status: string, txHash?: string, notes?: string) {
+// ─── Confirm deposit (called by admin route) ──────────────────────────────────
+
+export async function confirmDeposit(
+  depositId: number,
+  adminUserId: number,
+  status: string,
+  txHash?: string,
+  notes?: string,
+) {
   const [deposit] = await db.select().from(depositsTable).where(eq(depositsTable.id, depositId));
   if (!deposit) throw new Error("Deposit not found");
 
@@ -101,6 +109,7 @@ export async function confirmDeposit(depositId: number, adminUserId: number, sta
   if (status === "confirmed") {
     const [user] = await db.select().from(usersTable).where(eq(usersTable.id, deposit.userId));
     if (user) {
+      // Credit depositor balance
       const balanceBefore = Number(user.balance);
       const balanceAfter = balanceBefore + Number(deposit.amount);
       await db.update(usersTable).set({ balance: String(balanceAfter) }).where(eq(usersTable.id, user.id));
@@ -114,8 +123,73 @@ export async function confirmDeposit(depositId: number, adminUserId: number, sta
         referenceId: deposit.id,
         referenceType: "deposit",
       });
+
+      // ── Referral commission ────────────────────────────────────────────────
+      if (user.referredBy) {
+        // Anti-duplicate: one commission per deposit
+        const [existingCommission] = await db
+          .select({ id: commissionsTable.id })
+          .from(commissionsTable)
+          .where(
+            and(
+              eq(commissionsTable.fromUserId, user.id),
+              eq(commissionsTable.referenceId, deposit.id),
+            ),
+          )
+          .limit(1);
+
+        if (!existingCommission) {
+          const commissionRate = Number(await getSetting("referralCommissionPercent")) || 5;
+          const depositAmount = Number(deposit.amount);
+          const commissionAmount = parseFloat((depositAmount * commissionRate / 100).toFixed(8));
+
+          const [referrer] = await db.select().from(usersTable).where(eq(usersTable.id, user.referredBy));
+          if (referrer) {
+            const referrerBalanceBefore = Number(referrer.balance);
+            const referrerBalanceAfter = referrerBalanceBefore + commissionAmount;
+
+            // Credit referrer balance
+            await db.update(usersTable)
+              .set({ balance: String(referrerBalanceAfter) })
+              .where(eq(usersTable.id, referrer.id));
+
+            // Record commission (paid immediately on deposit approval)
+            await db.insert(commissionsTable).values({
+              userId: referrer.id,
+              fromUserId: user.id,
+              amount: String(commissionAmount),
+              rate: String(commissionRate),
+              level: 1,
+              status: "paid",
+              referenceId: deposit.id,
+              paidAt: new Date(),
+            });
+
+            // Record transaction for referrer
+            await db.insert(transactionsTable).values({
+              userId: referrer.id,
+              type: "commission",
+              amount: String(commissionAmount),
+              balanceBefore: String(referrerBalanceBefore),
+              balanceAfter: String(referrerBalanceAfter),
+              description: `Bônus de indicação — depósito de ${user.name} aprovado (R$ ${depositAmount.toFixed(2)})`,
+              referenceId: deposit.id,
+              referenceType: "deposit",
+            });
+
+            // Notify referrer
+            await db.insert(notificationsTable).values({
+              userId: referrer.id,
+              title: "Bônus de indicação creditado",
+              message: `R$ ${commissionAmount.toFixed(2)} de bônus de indicação foram creditados pelo depósito aprovado de ${user.name}.`,
+              type: "success",
+            });
+          }
+        }
+      }
     }
   }
+
   const [updated] = await db.select().from(depositsTable).where(eq(depositsTable.id, depositId));
   return updated;
 }
