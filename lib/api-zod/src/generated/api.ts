@@ -188,7 +188,13 @@ export const GetMeResponse = zod.object({
   "balance": zod.number(),
   "totalInvested": zod.number(),
   "totalYield": zod.number(),
-  "createdAt": zod.coerce.date()
+  "createdAt": zod.coerce.date(),
+  "btcWallet": zod.string().nullish(),
+  "usdtWallet": zod.string().nullish(),
+  "usdcWallet": zod.string().nullish(),
+  "pixKeyType": zod.string().nullish(),
+  "pixKey": zod.string().nullish(),
+  "pixBankName": zod.string().nullish()
 })
 
 
@@ -199,7 +205,13 @@ export const UpdateMeBody = zod.object({
   "name": zod.string().optional(),
   "phone": zod.string().nullish(),
   "country": zod.string().nullish(),
-  "avatarUrl": zod.string().nullish()
+  "avatarUrl": zod.string().nullish(),
+  "btcWallet": zod.string().nullish(),
+  "usdtWallet": zod.string().nullish(),
+  "usdcWallet": zod.string().nullish(),
+  "pixKeyType": zod.string().nullish(),
+  "pixKey": zod.string().nullish(),
+  "pixBankName": zod.string().nullish()
 })
 
 export const UpdateMeResponse = zod.object({
@@ -217,7 +229,13 @@ export const UpdateMeResponse = zod.object({
   "balance": zod.number(),
   "totalInvested": zod.number(),
   "totalYield": zod.number(),
-  "createdAt": zod.coerce.date()
+  "createdAt": zod.coerce.date(),
+  "btcWallet": zod.string().nullish(),
+  "usdtWallet": zod.string().nullish(),
+  "usdcWallet": zod.string().nullish(),
+  "pixKeyType": zod.string().nullish(),
+  "pixKey": zod.string().nullish(),
+  "pixBankName": zod.string().nullish()
 })
 
 

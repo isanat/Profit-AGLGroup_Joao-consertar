@@ -104,6 +104,18 @@ export interface UserProfile {
   totalInvested: number;
   totalYield: number;
   createdAt: string;
+  /** @nullable */
+  btcWallet?: string | null;
+  /** @nullable */
+  usdtWallet?: string | null;
+  /** @nullable */
+  usdcWallet?: string | null;
+  /** @nullable */
+  pixKeyType?: string | null;
+  /** @nullable */
+  pixKey?: string | null;
+  /** @nullable */
+  pixBankName?: string | null;
 }
 
 export interface AuthResponse {
@@ -120,6 +132,18 @@ export interface UserProfileUpdate {
   country?: string | null;
   /** @nullable */
   avatarUrl?: string | null;
+  /** @nullable */
+  btcWallet?: string | null;
+  /** @nullable */
+  usdtWallet?: string | null;
+  /** @nullable */
+  usdcWallet?: string | null;
+  /** @nullable */
+  pixKeyType?: string | null;
+  /** @nullable */
+  pixKey?: string | null;
+  /** @nullable */
+  pixBankName?: string | null;
 }
 
 export interface ChangePasswordInput {

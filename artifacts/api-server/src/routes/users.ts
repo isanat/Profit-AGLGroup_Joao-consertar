@@ -21,9 +21,25 @@ router.get("/me", requireAuth, async (req: AuthRequest, res) => {
 // PATCH /users/me
 router.patch("/me", requireAuth, async (req: AuthRequest, res) => {
   try {
-    const { name, phone, country, avatarUrl } = req.body;
+    const {
+      name, phone, country, avatarUrl,
+      btcWallet, usdtWallet, usdcWallet,
+      pixKeyType, pixKey, pixBankName,
+    } = req.body;
+
     const [user] = await db.update(usersTable)
-      .set({ name, phone: phone ?? null, country: country ?? null, avatarUrl: avatarUrl ?? null })
+      .set({
+        ...(name !== undefined && { name }),
+        phone: phone ?? null,
+        country: country ?? null,
+        avatarUrl: avatarUrl ?? null,
+        btcWallet: btcWallet ?? null,
+        usdtWallet: usdtWallet ?? null,
+        usdcWallet: usdcWallet ?? null,
+        pixKeyType: pixKeyType ?? null,
+        pixKey: pixKey ?? null,
+        pixBankName: pixBankName ?? null,
+      })
       .where(eq(usersTable.id, req.userId!))
       .returning();
     res.json(formatUser(user));
@@ -58,7 +74,7 @@ router.get("/me/sessions", requireAuth, async (req: AuthRequest, res) => {
   try {
     const sessions = await db.select().from(sessionsTable)
       .where(and(eq(sessionsTable.userId, req.userId!), gt(sessionsTable.expiresAt, new Date())));
-    res.json(sessions.map(s => ({
+    res.json(sessions.map((s) => ({
       id: s.id,
       ipAddress: s.ipAddress,
       userAgent: s.userAgent,
@@ -74,12 +90,27 @@ router.get("/me/sessions", requireAuth, async (req: AuthRequest, res) => {
 
 function formatUser(user: typeof usersTable.$inferSelect) {
   return {
-    id: user.id, name: user.name, email: user.email, phone: user.phone,
-    country: user.country, avatarUrl: user.avatarUrl, role: user.role,
-    status: user.status, emailVerified: user.emailVerified,
-    twoFactorEnabled: user.twoFactorEnabled, referralCode: user.referralCode,
-    balance: Number(user.balance), totalInvested: Number(user.totalInvested),
-    totalYield: Number(user.totalYield), createdAt: user.createdAt,
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    phone: user.phone,
+    country: user.country,
+    avatarUrl: user.avatarUrl,
+    role: user.role,
+    status: user.status,
+    emailVerified: user.emailVerified,
+    twoFactorEnabled: user.twoFactorEnabled,
+    referralCode: user.referralCode,
+    balance: Number(user.balance),
+    totalInvested: Number(user.totalInvested),
+    totalYield: Number(user.totalYield),
+    createdAt: user.createdAt,
+    btcWallet: user.btcWallet,
+    usdtWallet: user.usdtWallet,
+    usdcWallet: user.usdcWallet,
+    pixKeyType: user.pixKeyType,
+    pixKey: user.pixKey,
+    pixBankName: user.pixBankName,
   };
 }
 

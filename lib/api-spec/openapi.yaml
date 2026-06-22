@@ -1508,6 +1508,18 @@ components:
         createdAt:
           type: string
           format: date-time
+        btcWallet:
+          type: ["string", "null"]
+        usdtWallet:
+          type: ["string", "null"]
+        usdcWallet:
+          type: ["string", "null"]
+        pixKeyType:
+          type: ["string", "null"]
+        pixKey:
+          type: ["string", "null"]
+        pixBankName:
+          type: ["string", "null"]
       required: [id, name, email, role, status, emailVerified, twoFactorEnabled, referralCode, balance, totalInvested, totalYield, createdAt]
 
     UserProfileUpdate:
@@ -1520,6 +1532,18 @@ components:
         country:
           type: ["string", "null"]
         avatarUrl:
+          type: ["string", "null"]
+        btcWallet:
+          type: ["string", "null"]
+        usdtWallet:
+          type: ["string", "null"]
+        usdcWallet:
+          type: ["string", "null"]
+        pixKeyType:
+          type: ["string", "null"]
+        pixKey:
+          type: ["string", "null"]
+        pixBankName:
           type: ["string", "null"]
 
     ChangePasswordInput:

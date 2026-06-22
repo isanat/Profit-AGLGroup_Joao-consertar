@@ -4,3 +4,4 @@
 - [React Query v5 + Orval options cast](rq5-orval-options.md) — UseQueryOptions requer `queryKey` no tipo RQ v5; usar `as any` no objeto de opções passado ao hook
 - [ErrorType e handlers de erro](errortype-handlers.md) — ErrorType<unknown> é ApiError<unknown>; acesso `.data?.error` requer `(err: any)` no onError
 - [Error Boundary no app](error-boundary.md) — ErrorBoundary em src/components/error-boundary.tsx envolve toda a app em main.tsx; sem ele qualquer erro de render = tela branca
+- [Orval codegen timeout + api-zod restore](orval-codegen-restore.md) — when codegen times out, api-zod generated files may be deleted but not recreated; restore from git using Python subprocess pattern, then patch manually
