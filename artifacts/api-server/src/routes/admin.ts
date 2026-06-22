@@ -154,7 +154,7 @@ router.post("/strategies", async (req: AuthRequest, res) => {
 router.patch("/strategies/:id", async (req: AuthRequest, res) => {
   try {
     const id = parseInt(req.params.id);
-    const { name, description, riskLevel, category, minInvestment, sharePrice, maxDrawdown, status } = req.body;
+    const { name, description, riskLevel, category, minInvestment, sharePrice, maxDrawdown, status, dailyProfitPercent, maxReturnPct, durationDays } = req.body;
     const updates: any = {};
     if (name !== undefined) updates.name = name;
     if (description !== undefined) updates.description = description;
@@ -164,6 +164,9 @@ router.patch("/strategies/:id", async (req: AuthRequest, res) => {
     if (sharePrice !== undefined) updates.sharePrice = String(sharePrice);
     if (maxDrawdown !== undefined) updates.maxDrawdown = String(maxDrawdown);
     if (status !== undefined) updates.status = status;
+    if (dailyProfitPercent !== undefined) updates.dailyProfitPercent = String(dailyProfitPercent);
+    if (maxReturnPct !== undefined) updates.maxReturnPct = String(maxReturnPct);
+    if (durationDays !== undefined) updates.durationDays = Number(durationDays);
     const [strategy] = await db.update(strategiesTable).set(updates).where(eq(strategiesTable.id, id)).returning();
     if (!strategy) { res.status(404).json({ error: "Strategy not found" }); return; }
     await auditLog({ userId: req.userId!, action: "update_strategy", entityType: "strategy", entityId: id, req });
