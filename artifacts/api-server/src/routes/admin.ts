@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, usersTable, strategiesTable, strategyPerformanceTable, depositsTable, withdrawalsTable, userPositionsTable, transactionsTable, notificationsTable, auditLogsTable, platformWalletsTable, settingsTable, commissionsTable, referralsTable } from "@workspace/db";
-import { eq, desc, count, sum, ne, and } from "drizzle-orm";
+import { eq, desc, count, sum, ne, and, isNotNull } from "drizzle-orm";
 import { requireAdmin, type AuthRequest } from "../middlewares/auth";
 import { confirmDeposit } from "./deposits";
 import { approveWithdrawal } from "./withdrawals";
@@ -465,6 +465,109 @@ router.post("/notifications/broadcast", async (req: AuthRequest, res) => {
     res.json({ message: `Notification sent to ${userIds.length} users` });
   } catch (err) {
     req.log.error({ err }, "Admin broadcast notification error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// GET /admin/referrals
+router.get("/referrals", async (req: AuthRequest, res) => {
+  try {
+    const allRefs = await db.select().from(referralsTable).orderBy(desc(referralsTable.createdAt));
+    const allUsers = await db.select().from(usersTable);
+    const userMap = Object.fromEntries(allUsers.map(u => [u.id, u]));
+    const allCommissions = await db.select().from(commissionsTable);
+
+    // Commission totals per (referrerId, fromUserId) pair
+    const commissionMap: Record<string, number> = {};
+    for (const c of allCommissions) {
+      const key = `${c.userId}:${c.fromUserId}`;
+      commissionMap[key] = (commissionMap[key] ?? 0) + Number(c.amount);
+    }
+
+    const referrals = allRefs.map(r => {
+      const referrer = userMap[r.referrerId];
+      const referred = userMap[r.referredId];
+      const commKey = `${r.referrerId}:${r.referredId}`;
+      return {
+        referralId: r.id,
+        referrerId: r.referrerId,
+        referrerName: referrer?.name ?? "Desconhecido",
+        referrerEmail: referrer?.email ?? "",
+        referredId: r.referredId,
+        referredName: referred?.name ?? "Desconhecido",
+        referredEmail: referred?.email ?? "",
+        referredStatus: referred?.status ?? "unknown",
+        totalCommissionPaid: commissionMap[commKey] ?? 0,
+        joinedAt: referred?.createdAt ?? r.createdAt,
+        createdAt: r.createdAt,
+      };
+    });
+
+    // Stats
+    const totalCommissionPaid = allCommissions
+      .filter(c => c.status === "paid")
+      .reduce((a, c) => a + Number(c.amount), 0);
+
+    const countByReferrer: Record<number, number> = {};
+    for (const r of allRefs) {
+      countByReferrer[r.referrerId] = (countByReferrer[r.referrerId] ?? 0) + 1;
+    }
+    const topReferrers = Object.entries(countByReferrer)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([id, count]) => ({ name: userMap[Number(id)]?.name ?? `#${id}`, count }));
+
+    res.json({
+      referrals,
+      stats: {
+        totalReferrals: allRefs.length,
+        totalCommissionPaid,
+        topReferrers,
+      },
+    });
+  } catch (err) {
+    req.log.error({ err }, "Admin referrals error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// GET /admin/password-resets
+router.get("/password-resets", async (req: AuthRequest, res) => {
+  try {
+    const domain = process.env.REPLIT_DOMAINS
+      ? `https://${process.env.REPLIT_DOMAINS.split(",")[0]}`
+      : "http://localhost:80";
+
+    const usersWithToken = await db
+      .select({
+        id: usersTable.id,
+        name: usersTable.name,
+        email: usersTable.email,
+        passwordResetToken: usersTable.passwordResetToken,
+        passwordResetExpiry: usersTable.passwordResetExpiry,
+      })
+      .from(usersTable)
+      .where(isNotNull(usersTable.passwordResetToken));
+
+    const now = new Date();
+    const result = usersWithToken
+      .filter(u => u.passwordResetToken && u.passwordResetExpiry)
+      .map(u => ({
+        userId: u.id,
+        userName: u.name,
+        userEmail: u.email,
+        requestedAt: u.passwordResetExpiry
+          ? new Date(u.passwordResetExpiry.getTime() - 60 * 60 * 1000).toISOString()
+          : new Date().toISOString(),
+        expiresAt: u.passwordResetExpiry!.toISOString(),
+        isExpired: u.passwordResetExpiry! <= now,
+        resetLink: `${domain}/reset-password?token=${u.passwordResetToken}`,
+      }))
+      .sort((a, b) => new Date(b.requestedAt).getTime() - new Date(a.requestedAt).getTime());
+
+    res.json(result);
+  } catch (err) {
+    req.log.error({ err }, "Admin password resets error");
     res.status(500).json({ error: "Internal server error" });
   }
 });

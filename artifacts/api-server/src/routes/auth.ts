@@ -1,7 +1,7 @@
 import { Router } from "express";
 import bcrypt from "bcryptjs";
 import { randomBytes } from "crypto";
-import { db, usersTable, sessionsTable } from "@workspace/db";
+import { db, usersTable, sessionsTable, referralsTable } from "@workspace/db";
 import { eq, and, gt } from "drizzle-orm";
 import { generateTokens, verifyRefreshToken, requireAuth, type AuthRequest } from "../middlewares/auth";
 import { generateReferralCode } from "../lib/referral";
@@ -9,31 +9,70 @@ import { auditLog } from "../lib/audit";
 
 const router = Router();
 
+// GET /auth/validate-referral?code=CODE  (public — no auth required)
+router.get("/validate-referral", async (req, res) => {
+  try {
+    const code = String(req.query.code || "").trim().toUpperCase();
+    if (!code) {
+      res.status(400).json({ valid: false, error: "Código é obrigatório." });
+      return;
+    }
+    const [referrer] = await db
+      .select({ id: usersTable.id, name: usersTable.name, referralCode: usersTable.referralCode, status: usersTable.status })
+      .from(usersTable)
+      .where(eq(usersTable.referralCode, code));
+
+    if (!referrer) {
+      res.json({ valid: false, error: "Código de indicação inválido." });
+      return;
+    }
+    if (referrer.status !== "active") {
+      res.json({ valid: false, error: "Este indicador está inativo." });
+      return;
+    }
+    res.json({ valid: true, referrerName: referrer.name, referralCode: referrer.referralCode });
+  } catch (err) {
+    req.log.error({ err }, "Validate referral error");
+    res.status(500).json({ valid: false, error: "Erro interno." });
+  }
+});
+
 // POST /auth/register
 router.post("/register", async (req, res) => {
   try {
     const { name, email, password, confirmPassword, phone, country, referralCode } = req.body;
     if (!name || !email || !password || !confirmPassword) {
-      res.status(400).json({ error: "Name, email, and password are required" });
+      res.status(400).json({ error: "Nome, e-mail e senha são obrigatórios." });
       return;
     }
     if (password !== confirmPassword) {
-      res.status(400).json({ error: "Passwords do not match" });
+      res.status(400).json({ error: "As senhas não conferem." });
       return;
     }
     if (password.length < 8) {
-      res.status(400).json({ error: "Password must be at least 8 characters" });
+      res.status(400).json({ error: "A senha deve ter ao menos 8 caracteres." });
       return;
     }
     const [existing] = await db.select().from(usersTable).where(eq(usersTable.email, email.toLowerCase()));
     if (existing) {
-      res.status(400).json({ error: "Email already registered" });
+      res.status(400).json({ error: "E-mail já cadastrado." });
       return;
     }
     let referrerId: number | undefined;
     if (referralCode) {
-      const [referrer] = await db.select().from(usersTable).where(eq(usersTable.referralCode, referralCode.toUpperCase()));
-      if (referrer) referrerId = referrer.id;
+      const [referrer] = await db
+        .select({ id: usersTable.id, status: usersTable.status })
+        .from(usersTable)
+        .where(eq(usersTable.referralCode, referralCode.toUpperCase()));
+      if (!referrer) {
+        res.status(400).json({ error: "Código de indicação inválido." });
+        return;
+      }
+      if (referrer.status !== "active") {
+        res.status(400).json({ error: "Este indicador está inativo." });
+        return;
+      }
+      referrerId = referrer.id;
     }
     const passwordHash = await bcrypt.hash(password, 12);
     const myReferralCode = generateReferralCode();
@@ -48,10 +87,9 @@ router.post("/register", async (req, res) => {
       referredBy: referrerId ?? null,
       emailVerifyToken,
       status: "active",
-      emailVerified: true, // Auto-verify for now
+      emailVerified: true,
     }).returning();
     if (referrerId) {
-      const { referralsTable } = await import("@workspace/db");
       await db.insert(referralsTable).values({ referrerId, referredId: user.id, level: 1 });
     }
     const { accessToken, refreshToken } = generateTokens(user.id, user.role);
@@ -63,12 +101,8 @@ router.post("/register", async (req, res) => {
       userAgent: req.headers["user-agent"] ?? null,
       expiresAt,
     });
-    await auditLog({ userId: user.id, userEmail: user.email, action: "register", entityType: "user", entityId: user.id, req });
-    res.status(201).json({
-      accessToken,
-      refreshToken,
-      user: formatUser(user),
-    });
+    await auditLog({ userId: user.id, userEmail: user.email, action: "register", entityType: "user", entityId: user.id, metadata: { referralCode: referralCode || null, referrerId: referrerId || null }, req });
+    res.status(201).json({ accessToken, refreshToken, user: formatUser(user) });
   } catch (err) {
     req.log.error({ err }, "Register error");
     res.status(500).json({ error: "Internal server error" });
@@ -78,31 +112,30 @@ router.post("/register", async (req, res) => {
 // POST /auth/login
 router.post("/login", async (req, res) => {
   try {
-    const { email, password, twoFactorCode } = req.body;
+    const { email, password } = req.body;
     if (!email || !password) {
-      res.status(400).json({ error: "Email and password are required" });
+      res.status(400).json({ error: "E-mail e senha são obrigatórios." });
       return;
     }
     const [user] = await db.select().from(usersTable).where(eq(usersTable.email, email.toLowerCase()));
     if (!user) {
-      res.status(401).json({ error: "Invalid credentials" });
+      res.status(401).json({ error: "Credenciais inválidas." });
       return;
     }
     const valid = await bcrypt.compare(password, user.passwordHash);
     if (!valid) {
-      res.status(401).json({ error: "Invalid credentials" });
+      res.status(401).json({ error: "Credenciais inválidas." });
       return;
     }
     if (user.status === "suspended") {
-      res.status(403).json({ error: "Account suspended" });
+      res.status(403).json({ error: "Conta suspensa." });
       return;
     }
     await db.update(usersTable).set({ lastLoginAt: new Date() }).where(eq(usersTable.id, user.id));
     const { accessToken, refreshToken } = generateTokens(user.id, user.role);
     const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
     await db.insert(sessionsTable).values({
-      userId: user.id,
-      refreshToken,
+      userId: user.id, refreshToken,
       ipAddress: req.ip ?? null,
       userAgent: req.headers["user-agent"] ?? null,
       expiresAt,
@@ -118,12 +151,10 @@ router.post("/login", async (req, res) => {
 // POST /auth/logout
 router.post("/logout", requireAuth, async (req: AuthRequest, res) => {
   try {
-    const authHeader = req.headers.authorization;
-    // Delete all sessions for simplicity, or just the current one
     if (req.userId) {
       await db.delete(sessionsTable).where(eq(sessionsTable.userId, req.userId));
     }
-    res.json({ message: "Logged out successfully" });
+    res.json({ message: "Deslogado com sucesso." });
   } catch (err) {
     req.log.error({ err }, "Logout error");
     res.status(500).json({ error: "Internal server error" });
@@ -134,33 +165,17 @@ router.post("/logout", requireAuth, async (req: AuthRequest, res) => {
 router.post("/refresh", async (req, res) => {
   try {
     const { refreshToken } = req.body;
-    if (!refreshToken) {
-      res.status(400).json({ error: "Refresh token required" });
-      return;
-    }
+    if (!refreshToken) { res.status(400).json({ error: "Refresh token obrigatório." }); return; }
     const payload = verifyRefreshToken(refreshToken);
-    if (!payload) {
-      res.status(401).json({ error: "Invalid refresh token" });
-      return;
-    }
+    if (!payload) { res.status(401).json({ error: "Token inválido." }); return; }
     const [session] = await db.select().from(sessionsTable)
       .where(and(eq(sessionsTable.refreshToken, refreshToken), gt(sessionsTable.expiresAt, new Date())));
-    if (!session) {
-      res.status(401).json({ error: "Session expired" });
-      return;
-    }
+    if (!session) { res.status(401).json({ error: "Sessão expirada." }); return; }
     const [user] = await db.select().from(usersTable).where(eq(usersTable.id, payload.userId));
-    if (!user) {
-      res.status(401).json({ error: "User not found" });
-      return;
-    }
+    if (!user) { res.status(401).json({ error: "Usuário não encontrado." }); return; }
     const tokens = generateTokens(user.id, user.role);
     const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-    await db.update(sessionsTable).set({
-      refreshToken: tokens.refreshToken,
-      lastUsedAt: new Date(),
-      expiresAt,
-    }).where(eq(sessionsTable.id, session.id));
+    await db.update(sessionsTable).set({ refreshToken: tokens.refreshToken, lastUsedAt: new Date(), expiresAt }).where(eq(sessionsTable.id, session.id));
     res.json({ accessToken: tokens.accessToken, refreshToken: tokens.refreshToken, user: formatUser(user) });
   } catch (err) {
     req.log.error({ err }, "Refresh error");
@@ -170,34 +185,62 @@ router.post("/refresh", async (req, res) => {
 
 // POST /auth/forgot-password
 router.post("/forgot-password", async (req, res) => {
-  const { email } = req.body;
-  const [user] = await db.select().from(usersTable).where(eq(usersTable.email, (email || "").toLowerCase()));
-  if (user) {
-    const token = randomBytes(32).toString("hex");
-    const expiry = new Date(Date.now() + 60 * 60 * 1000);
-    await db.update(usersTable).set({ passwordResetToken: token, passwordResetExpiry: expiry }).where(eq(usersTable.id, user.id));
+  try {
+    const { email } = req.body;
+    if (!email) { res.status(400).json({ error: "E-mail obrigatório." }); return; }
+    const [user] = await db.select().from(usersTable).where(eq(usersTable.email, (email || "").toLowerCase()));
+    if (user) {
+      const token = randomBytes(32).toString("hex");
+      const expiry = new Date(Date.now() + 60 * 60 * 1000);
+      await db.update(usersTable)
+        .set({ passwordResetToken: token, passwordResetExpiry: expiry })
+        .where(eq(usersTable.id, user.id));
+
+      const domain = process.env.REPLIT_DOMAINS
+        ? `https://${process.env.REPLIT_DOMAINS.split(",")[0]}`
+        : "http://localhost:80";
+      const resetLink = `${domain}/reset-password?token=${token}`;
+
+      req.log.info({ userId: user.id, email: user.email, resetLink }, "Password reset token generated");
+      await auditLog({ userId: user.id, userEmail: user.email, action: "forgot_password", entityType: "user", entityId: user.id, metadata: { resetLink, expiresAt: expiry.toISOString() }, req });
+    }
+    res.json({ message: "Se o e-mail estiver cadastrado, o link de redefinição foi gerado." });
+  } catch (err) {
+    req.log.error({ err }, "Forgot password error");
+    res.status(500).json({ error: "Internal server error" });
   }
-  res.json({ message: "If that email exists, a reset link has been sent" });
 });
 
 // POST /auth/reset-password
 router.post("/reset-password", async (req, res) => {
   try {
     const { token, password, confirmPassword } = req.body;
-    if (!token || !password || password !== confirmPassword) {
-      res.status(400).json({ error: "Invalid request" });
+    if (!token || !password) {
+      res.status(400).json({ error: "Token e nova senha são obrigatórios." });
+      return;
+    }
+    if (password !== confirmPassword) {
+      res.status(400).json({ error: "As senhas não conferem." });
+      return;
+    }
+    if (password.length < 8) {
+      res.status(400).json({ error: "A senha deve ter ao menos 8 caracteres." });
       return;
     }
     const [user] = await db.select().from(usersTable).where(
       and(eq(usersTable.passwordResetToken, token), gt(usersTable.passwordResetExpiry!, new Date()))
     );
     if (!user) {
-      res.status(400).json({ error: "Invalid or expired reset token" });
+      res.status(400).json({ error: "Link de redefinição inválido ou expirado." });
       return;
     }
     const passwordHash = await bcrypt.hash(password, 12);
-    await db.update(usersTable).set({ passwordHash, passwordResetToken: null, passwordResetExpiry: null }).where(eq(usersTable.id, user.id));
-    res.json({ message: "Password reset successfully" });
+    await db.update(usersTable)
+      .set({ passwordHash, passwordResetToken: null, passwordResetExpiry: null })
+      .where(eq(usersTable.id, user.id));
+    await db.delete(sessionsTable).where(eq(sessionsTable.userId, user.id));
+    await auditLog({ userId: user.id, userEmail: user.email, action: "reset_password", entityType: "user", entityId: user.id, req });
+    res.json({ message: "Senha redefinida com sucesso." });
   } catch (err) {
     req.log.error({ err }, "Reset password error");
     res.status(500).json({ error: "Internal server error" });
@@ -209,12 +252,9 @@ router.post("/verify-email", async (req, res) => {
   try {
     const { token } = req.body;
     const [user] = await db.select().from(usersTable).where(eq(usersTable.emailVerifyToken, token));
-    if (!user) {
-      res.status(400).json({ error: "Invalid token" });
-      return;
-    }
+    if (!user) { res.status(400).json({ error: "Token inválido." }); return; }
     await db.update(usersTable).set({ emailVerified: true, emailVerifyToken: null, status: "active" }).where(eq(usersTable.id, user.id));
-    res.json({ message: "Email verified successfully" });
+    res.json({ message: "E-mail verificado com sucesso." });
   } catch (err) {
     req.log.error({ err }, "Verify email error");
     res.status(500).json({ error: "Internal server error" });
@@ -237,26 +277,17 @@ router.post("/verify-2fa", requireAuth, async (req: AuthRequest, res) => {
   if (req.userId) {
     await db.update(usersTable).set({ twoFactorEnabled: true }).where(eq(usersTable.id, req.userId));
   }
-  res.json({ message: "2FA enabled successfully" });
+  res.json({ message: "2FA habilitado com sucesso." });
 });
 
 function formatUser(user: typeof usersTable.$inferSelect) {
   return {
-    id: user.id,
-    name: user.name,
-    email: user.email,
-    phone: user.phone,
-    country: user.country,
-    avatarUrl: user.avatarUrl,
-    role: user.role,
-    status: user.status,
-    emailVerified: user.emailVerified,
-    twoFactorEnabled: user.twoFactorEnabled,
-    referralCode: user.referralCode,
-    balance: Number(user.balance),
-    totalInvested: Number(user.totalInvested),
-    totalYield: Number(user.totalYield),
-    createdAt: user.createdAt,
+    id: user.id, name: user.name, email: user.email, phone: user.phone,
+    country: user.country, avatarUrl: user.avatarUrl, role: user.role,
+    status: user.status, emailVerified: user.emailVerified,
+    twoFactorEnabled: user.twoFactorEnabled, referralCode: user.referralCode,
+    balance: Number(user.balance), totalInvested: Number(user.totalInvested),
+    totalYield: Number(user.totalYield), createdAt: user.createdAt,
   };
 }
 

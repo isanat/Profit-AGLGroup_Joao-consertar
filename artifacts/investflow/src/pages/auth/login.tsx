@@ -9,12 +9,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { toast } from "sonner";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 
 const loginSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(8),
-  twoFactorCode: z.string().optional()
+  email: z.string().email("E-mail inválido"),
+  password: z.string().min(8, "Senha deve ter ao menos 8 caracteres"),
+  twoFactorCode: z.string().optional(),
 });
 
 export default function Login() {
@@ -25,25 +25,24 @@ export default function Login() {
 
   const form = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
-    defaultValues: { email: "", password: "", twoFactorCode: "" }
+    defaultValues: { email: "", password: "", twoFactorCode: "" },
   });
 
   const onSubmit = (data: z.infer<typeof loginSchema>) => {
     loginMutation.mutate({ data }, {
       onSuccess: (res) => {
         login(res.accessToken, res.refreshToken);
-        toast.success("Login successful");
+        toast.success("Login realizado com sucesso!");
         setLocation("/dashboard");
       },
-      onError: (err) => {
-        // If the error requires 2FA (this depends on API design, we assume a specific status or message)
+      onError: (err: any) => {
         if (err.data?.error?.includes("2FA")) {
           setRequires2FA(true);
-          toast.info("Please enter your 2FA code");
+          toast.info("Digite seu código 2FA");
         } else {
-          toast.error(err.data?.error || "Login failed");
+          toast.error(err.data?.error || "Credenciais inválidas.");
         }
-      }
+      },
     });
   };
 
@@ -53,13 +52,13 @@ export default function Login() {
         <div className="text-center mb-8">
           <img src="/logo.png" alt="Alliance Group" className="h-24 w-auto mx-auto mb-2" />
           <h1 className="text-3xl font-bold tracking-tight text-foreground">Alliance Group</h1>
-          <p className="text-muted-foreground mt-2">Premium Wealth Management</p>
+          <p className="text-muted-foreground mt-2">Gestão Premium de Investimentos</p>
         </div>
 
         <Card>
           <CardHeader>
-            <CardTitle>Sign In</CardTitle>
-            <CardDescription>Enter your credentials to access your account</CardDescription>
+            <CardTitle>Entrar</CardTitle>
+            <CardDescription>Digite suas credenciais para acessar sua conta</CardDescription>
           </CardHeader>
           <CardContent>
             <Form {...form}>
@@ -69,9 +68,9 @@ export default function Login() {
                   name="email"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Email</FormLabel>
+                      <FormLabel>E-mail</FormLabel>
                       <FormControl>
-                        <Input placeholder="name@example.com" {...field} disabled={requires2FA} />
+                        <Input placeholder="nome@exemplo.com" type="email" {...field} disabled={requires2FA} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -82,7 +81,12 @@ export default function Login() {
                   name="password"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Password</FormLabel>
+                      <div className="flex items-center justify-between">
+                        <FormLabel>Senha</FormLabel>
+                        <Link href="/forgot-password" className="text-xs text-primary hover:underline">
+                          Esqueceu a senha?
+                        </Link>
+                      </div>
                       <FormControl>
                         <Input type="password" {...field} disabled={requires2FA} />
                       </FormControl>
@@ -90,14 +94,14 @@ export default function Login() {
                     </FormItem>
                   )}
                 />
-                
+
                 {requires2FA && (
                   <FormField
                     control={form.control}
                     name="twoFactorCode"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>2FA Code</FormLabel>
+                        <FormLabel>Código 2FA</FormLabel>
                         <FormControl>
                           <Input placeholder="000000" {...field} />
                         </FormControl>
@@ -108,11 +112,19 @@ export default function Login() {
                 )}
 
                 <Button type="submit" className="w-full" disabled={loginMutation.isPending}>
-                  {loginMutation.isPending ? "Signing in..." : "Sign In"}
+                  {loginMutation.isPending ? "Entrando..." : "Entrar"}
                 </Button>
               </form>
             </Form>
           </CardContent>
+          <CardFooter className="flex justify-center border-t border-border pt-4">
+            <p className="text-sm text-muted-foreground">
+              Não tem uma conta?{" "}
+              <Link href="/register" className="text-primary hover:underline">
+                Cadastrar
+              </Link>
+            </p>
+          </CardFooter>
         </Card>
       </div>
     </div>

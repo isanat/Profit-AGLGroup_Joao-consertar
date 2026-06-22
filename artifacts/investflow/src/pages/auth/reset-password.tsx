@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -8,31 +8,32 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { toast } from "sonner";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { ArrowLeft } from "lucide-react";
 
 const schema = z.object({
   token: z.string().min(1),
-  password: z.string().min(8, "Password must be at least 8 characters"),
-  confirmPassword: z.string()
+  password: z.string().min(8, "Senha deve ter ao menos 8 caracteres"),
+  confirmPassword: z.string(),
 }).refine(data => data.password === data.confirmPassword, {
-  message: "Passwords don't match",
-  path: ["confirmPassword"]
+  message: "As senhas não conferem",
+  path: ["confirmPassword"],
 });
 
 export default function ResetPassword() {
-  const [location, setLocation] = useLocation();
+  const [, setLocation] = useLocation();
   const resetPassword = useResetPassword();
 
   const token = new URLSearchParams(window.location.search).get("token") || "";
 
   const form = useForm<z.infer<typeof schema>>({
     resolver: zodResolver(schema),
-    defaultValues: { token, password: "", confirmPassword: "" }
+    defaultValues: { token, password: "", confirmPassword: "" },
   });
 
   useEffect(() => {
     if (!token) {
-      toast.error("Invalid or missing reset token");
+      toast.error("Link de redefinição inválido ou ausente.");
       setLocation("/login");
     }
   }, [token, setLocation]);
@@ -40,12 +41,12 @@ export default function ResetPassword() {
   const onSubmit = (data: z.infer<typeof schema>) => {
     resetPassword.mutate({ data }, {
       onSuccess: () => {
-        toast.success("Password reset successfully. You can now login.");
+        toast.success("Senha redefinida com sucesso! Faça login com a nova senha.");
         setLocation("/login");
       },
       onError: (err: any) => {
-        toast.error(err.data?.error || "Failed to reset password");
-      }
+        toast.error(err.data?.error || "Link inválido ou expirado.");
+      },
     });
   };
 
@@ -61,8 +62,10 @@ export default function ResetPassword() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Set New Password</CardTitle>
-            <CardDescription>Enter your new password below</CardDescription>
+            <CardTitle>Nova Senha</CardTitle>
+            <CardDescription>
+              Escolha uma nova senha para sua conta. O link expira em 1 hora.
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <Form {...form}>
@@ -72,9 +75,9 @@ export default function ResetPassword() {
                   name="password"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>New Password</FormLabel>
+                      <FormLabel>Nova Senha</FormLabel>
                       <FormControl>
-                        <Input type="password" {...field} />
+                        <Input type="password" placeholder="Mínimo 8 caracteres" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -85,7 +88,7 @@ export default function ResetPassword() {
                   name="confirmPassword"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Confirm Password</FormLabel>
+                      <FormLabel>Confirmar Nova Senha</FormLabel>
                       <FormControl>
                         <Input type="password" {...field} />
                       </FormControl>
@@ -94,11 +97,17 @@ export default function ResetPassword() {
                   )}
                 />
                 <Button type="submit" className="w-full" disabled={resetPassword.isPending}>
-                  {resetPassword.isPending ? "Resetting..." : "Reset Password"}
+                  {resetPassword.isPending ? "Redefinindo..." : "Redefinir Senha"}
                 </Button>
               </form>
             </Form>
           </CardContent>
+          <CardFooter className="flex justify-center border-t border-border pt-4">
+            <Link href="/login" className="flex items-center gap-1.5 text-sm text-primary hover:underline">
+              <ArrowLeft className="h-3.5 w-3.5" />
+              Voltar ao login
+            </Link>
+          </CardFooter>
         </Card>
       </div>
     </div>
