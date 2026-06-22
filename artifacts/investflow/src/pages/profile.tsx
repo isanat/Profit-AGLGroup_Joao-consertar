@@ -12,7 +12,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 
 const profileSchema = z.object({
-  name: z.string().min(2),
+  name: z.string().min(2, "Nome deve ter pelo menos 2 caracteres"),
   phone: z.string().optional(),
   country: z.string().optional(),
 });
@@ -28,7 +28,7 @@ export default function Profile() {
       name: "",
       phone: "",
       country: "",
-    }
+    },
   });
 
   useEffect(() => {
@@ -42,28 +42,31 @@ export default function Profile() {
   }, [user, form]);
 
   const onSubmit = (data: z.infer<typeof profileSchema>) => {
-    updateMe.mutate({ data }, {
-      onSuccess: () => {
-        toast.success("Profile updated successfully");
-        queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
+    updateMe.mutate(
+      { data },
+      {
+        onSuccess: () => {
+          toast.success("Perfil atualizado com sucesso");
+          queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
+        },
+        onError: (err: any) => {
+          toast.error(err?.data?.error || "Erro ao atualizar perfil");
+        },
       },
-      onError: (err: any) => {
-        toast.error(err.data?.error || "Failed to update profile");
-      }
-    });
+    );
   };
 
   return (
     <div className="space-y-6 max-w-2xl">
       <div>
-        <h2 className="text-3xl font-bold tracking-tight">Profile</h2>
-        <p className="text-muted-foreground">Manage your personal information.</p>
+        <h2 className="text-3xl font-bold tracking-tight">Perfil</h2>
+        <p className="text-muted-foreground">Gerencie suas informações pessoais.</p>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Personal Information</CardTitle>
-          <CardDescription>Update your contact details.</CardDescription>
+          <CardTitle>Informações Pessoais</CardTitle>
+          <CardDescription>Atualize seus dados de contato.</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -73,7 +76,7 @@ export default function Profile() {
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Full Name</FormLabel>
+                    <FormLabel>Nome Completo</FormLabel>
                     <FormControl>
                       <Input {...field} />
                     </FormControl>
@@ -88,7 +91,7 @@ export default function Profile() {
                   name="phone"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Phone</FormLabel>
+                      <FormLabel>Telefone</FormLabel>
                       <FormControl>
                         <Input {...field} />
                       </FormControl>
@@ -96,13 +99,13 @@ export default function Profile() {
                     </FormItem>
                   )}
                 />
-                
+
                 <FormField
                   control={form.control}
                   name="country"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Country</FormLabel>
+                      <FormLabel>País</FormLabel>
                       <FormControl>
                         <Input {...field} />
                       </FormControl>
@@ -111,15 +114,15 @@ export default function Profile() {
                   )}
                 />
               </div>
-              
+
               <div className="space-y-2 pt-2 pb-4">
-                <FormLabel>Email Address</FormLabel>
+                <FormLabel>E-mail</FormLabel>
                 <Input value={user?.email || ""} disabled className="bg-muted" />
-                <p className="text-xs text-muted-foreground">Email cannot be changed.</p>
+                <p className="text-xs text-muted-foreground">O e-mail não pode ser alterado.</p>
               </div>
 
               <Button type="submit" disabled={updateMe.isPending}>
-                {updateMe.isPending ? "Saving..." : "Save Changes"}
+                {updateMe.isPending ? "Salvando..." : "Salvar Alterações"}
               </Button>
             </form>
           </Form>

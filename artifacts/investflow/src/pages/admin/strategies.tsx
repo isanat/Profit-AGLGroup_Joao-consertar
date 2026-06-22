@@ -170,8 +170,8 @@ export default function AdminStrategies() {
                     <TableCell className="text-muted-foreground">{s.id}</TableCell>
                     <TableCell className="font-medium">{s.name}</TableCell>
                     <TableCell>{s.category}</TableCell>
-                    <TableCell>R$ {s.sharePrice.toFixed(2)}</TableCell>
-                    <TableCell>{s.availableShares} / {s.totalShares}</TableCell>
+                    <TableCell>R$ {Number(s.sharePrice ?? 0).toFixed(2)}</TableCell>
+                    <TableCell>{s.availableShares ?? 0} / {s.totalShares ?? 0}</TableCell>
                     <TableCell>
                       <Badge variant={s.riskLevel === "high" ? "destructive" : s.riskLevel === "low" ? "secondary" : "outline"}>
                         {RISK_LABEL[s.riskLevel] || s.riskLevel}

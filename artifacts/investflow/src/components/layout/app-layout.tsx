@@ -40,16 +40,16 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   const navItems = [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/my-positions", label: "My Positions", icon: Briefcase },
-    { href: "/strategies", label: "Strategies", icon: LineChart },
-    { href: "/deposit", label: "Deposit", icon: Wallet },
-    { href: "/withdraw", label: "Withdraw", icon: ArrowLeftRight },
-    { href: "/transactions", label: "Transactions", icon: History },
-    { href: "/referrals", label: "Referrals", icon: Users },
-    { href: "/notifications", label: "Notifications", icon: Bell },
-    { href: "/profile", label: "Profile", icon: User },
-    { href: "/security", label: "Security", icon: Shield },
-    { href: "/support", label: "Support", icon: HelpCircle },
+    { href: "/my-positions", label: "Minhas Posições", icon: Briefcase },
+    { href: "/strategies", label: "Estratégias", icon: LineChart },
+    { href: "/deposit", label: "Depositar", icon: Wallet },
+    { href: "/withdraw", label: "Sacar", icon: ArrowLeftRight },
+    { href: "/transactions", label: "Transações", icon: History },
+    { href: "/referrals", label: "Indicações", icon: Users },
+    { href: "/notifications", label: "Notificações", icon: Bell },
+    { href: "/profile", label: "Perfil", icon: User },
+    { href: "/security", label: "Segurança", icon: Shield },
+    { href: "/support", label: "Suporte", icon: HelpCircle },
   ];
 
   const adminItems = [
