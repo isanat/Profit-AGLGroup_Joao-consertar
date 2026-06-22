@@ -469,6 +469,83 @@ router.post("/notifications/broadcast", async (req: AuthRequest, res) => {
   }
 });
 
+// POST /admin/commissions/replay  — manually credit missed referral commissions for a user
+router.post("/commissions/replay", async (req: AuthRequest, res) => {
+  try {
+    const { userId } = req.body;
+    if (!userId) { res.status(400).json({ error: "userId is required" }); return; }
+
+    const [user] = await db.select().from(usersTable).where(eq(usersTable.id, Number(userId)));
+    if (!user) { res.status(404).json({ error: "User not found" }); return; }
+    if (!user.referredBy) { res.status(400).json({ error: "This user has no referrer" }); return; }
+
+    const [referrer] = await db.select().from(usersTable).where(eq(usersTable.id, user.referredBy));
+    if (!referrer) { res.status(404).json({ error: "Referrer not found" }); return; }
+
+    const positions = await db.select().from(userPositionsTable)
+      .where(eq(userPositionsTable.userId, user.id));
+
+    const commissionRate = Number(await (await import("../lib/settings")).getSetting("referralCommissionPercent")) || 100;
+    const credited: { positionId: number; amount: number }[] = [];
+
+    for (const position of positions) {
+      // Skip if commission already exists for this position
+      const [existing] = await db.select({ id: commissionsTable.id })
+        .from(commissionsTable)
+        .where(and(eq(commissionsTable.fromUserId, user.id), eq(commissionsTable.referenceId, position.id)))
+        .limit(1);
+      if (existing) continue;
+
+      const investedAmount = Number(position.investedAmount);
+      const commissionAmount = parseFloat((investedAmount * commissionRate / 100).toFixed(8));
+      if (commissionAmount <= 0) continue;
+
+      const [freshReferrer] = await db.select().from(usersTable).where(eq(usersTable.id, referrer.id));
+      const referrerBalanceBefore = Number(freshReferrer.balance);
+      const referrerBalanceAfter = referrerBalanceBefore + commissionAmount;
+
+      await db.update(usersTable).set({ balance: String(referrerBalanceAfter) }).where(eq(usersTable.id, referrer.id));
+
+      await db.insert(commissionsTable).values({
+        userId: referrer.id,
+        fromUserId: user.id,
+        amount: String(commissionAmount),
+        rate: String(commissionRate),
+        level: 1,
+        status: "paid",
+        referenceId: position.id,
+        paidAt: new Date(),
+      });
+
+      await db.insert(transactionsTable).values({
+        userId: referrer.id,
+        type: "commission",
+        amount: String(commissionAmount),
+        balanceBefore: String(referrerBalanceBefore),
+        balanceAfter: String(referrerBalanceAfter),
+        description: `Bônus de indicação retroativo (${commissionRate}%) — plano de ${user.name} (R$ ${investedAmount.toFixed(2)})`,
+        referenceId: position.id,
+        referenceType: "position",
+      });
+
+      await db.insert(notificationsTable).values({
+        userId: referrer.id,
+        title: "Bônus de indicação creditado",
+        message: `R$ ${commissionAmount.toFixed(2)} de bônus retroativo foram creditados pelo plano de ${user.name}.`,
+        type: "success",
+      });
+
+      credited.push({ positionId: position.id, amount: commissionAmount });
+    }
+
+    await auditLog({ userId: req.userId!, userEmail: referrer.email, action: "replay_commission", entityType: "commission", metadata: { targetUserId: user.id, credited, commissionRate }, req });
+    res.json({ message: `${credited.length} comissão(ões) creditada(s) para ${referrer.name}`, credited, referrerName: referrer.name });
+  } catch (err) {
+    req.log.error({ err }, "Admin replay commission error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 // GET /admin/referrals
 router.get("/referrals", async (req: AuthRequest, res) => {
   try {

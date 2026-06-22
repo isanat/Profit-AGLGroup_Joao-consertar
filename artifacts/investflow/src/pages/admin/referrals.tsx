@@ -1,10 +1,12 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getSmartAccessToken } from "@/lib/auth";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { Users, TrendingUp, UserCheck } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
+import { Users, TrendingUp, UserCheck, RefreshCw } from "lucide-react";
 
 interface ReferralRow {
   referralId: number;
@@ -30,6 +32,8 @@ const fmtBRL = (v: number) =>
   `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 export default function AdminReferrals() {
+  const queryClient = useQueryClient();
+
   const { data, isLoading } = useQuery<{ referrals: ReferralRow[]; stats: SummaryStats }>({
     queryKey: ["admin", "referrals"],
     queryFn: async () => {
@@ -39,6 +43,31 @@ export default function AdminReferrals() {
       });
       if (!res.ok) throw new Error("Erro ao carregar indicações");
       return res.json();
+    },
+  });
+
+  const replayMutation = useMutation({
+    mutationFn: async (referredId: number) => {
+      const token = await getSmartAccessToken();
+      const res = await fetch("/api/admin/commissions/replay", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: referredId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Erro ao reparar comissão");
+      return data;
+    },
+    onSuccess: (data) => {
+      if (data.credited?.length > 0) {
+        toast.success(`${data.credited.length} comissão(ões) creditada(s) para ${data.referrerName} — R$ ${data.credited.reduce((a: number, c: any) => a + c.amount, 0).toFixed(2)}`);
+      } else {
+        toast.info("Nenhuma comissão pendente encontrada para este indicado.");
+      }
+      queryClient.invalidateQueries({ queryKey: ["admin", "referrals"] });
+    },
+    onError: (err: any) => {
+      toast.error(err.message || "Erro ao reparar comissão");
     },
   });
 
@@ -117,12 +146,13 @@ export default function AdminReferrals() {
                   <TableHead>Status do Indicado</TableHead>
                   <TableHead>Comissão Paga</TableHead>
                   <TableHead>Data de Cadastro</TableHead>
+                  <TableHead>Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {!data?.referrals.length ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                       Nenhum vínculo de indicação encontrado.
                     </TableCell>
                   </TableRow>
@@ -152,6 +182,18 @@ export default function AdminReferrals() {
                       </TableCell>
                       <TableCell className="text-muted-foreground text-sm">
                         {new Date(r.joinedAt).toLocaleDateString("pt-BR")}
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 text-xs gap-1 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10"
+                          disabled={replayMutation.isPending}
+                          onClick={() => replayMutation.mutate(r.referredId)}
+                        >
+                          <RefreshCw className="h-3 w-3" />
+                          Reparar
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))

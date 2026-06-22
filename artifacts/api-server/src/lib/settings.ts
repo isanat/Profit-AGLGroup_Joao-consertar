@@ -6,7 +6,7 @@ const defaultSettings: Record<string, string> = {
   minWithdrawal: "10",
   maxWithdrawal: "100000",
   minDeposit: "10",
-  referralCommissionPercent: "5",
+  referralCommissionPercent: "100",
   referralLevels: "1",
   maintenanceMode: "false",
   depositEnabled: "true",
