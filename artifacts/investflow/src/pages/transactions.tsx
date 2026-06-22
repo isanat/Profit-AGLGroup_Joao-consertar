@@ -1,11 +1,40 @@
 import { useListTransactions, ListTransactionsType } from "@workspace/api-client-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { useState } from "react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useState } from "react";
+import { ArrowDownLeft, ArrowUpRight, History } from "lucide-react";
+
+const fmtBRL = (v: number) =>
+  `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+const TX_LABELS: Record<string, string> = {
+  deposit: "Depósito",
+  withdrawal: "Saque",
+  position_buy: "Plano ativado",
+  yield: "Rendimento",
+  yield_credit: "Rendimento",
+  commission: "Bônus indicação",
+};
+
+const TX_COLORS: Record<string, string> = {
+  deposit: "#10b981",
+  yield: "#10b981",
+  yield_credit: "#10b981",
+  commission: "#f59e0b",
+  withdrawal: "#ef4444",
+  position_buy: "#6366f1",
+};
+
+const FILTER_OPTIONS: { value: string; label: string }[] = [
+  { value: "all", label: "Todos os tipos" },
+  { value: "deposit", label: "Depósitos" },
+  { value: "withdrawal", label: "Saques" },
+  { value: "position_buy", label: "Planos" },
+  { value: "yield_credit", label: "Rendimentos" },
+  { value: "commission", label: "Bônus" },
+];
 
 export default function Transactions() {
   const [typeFilter, setTypeFilter] = useState<ListTransactionsType | "all">("all");
@@ -18,84 +47,161 @@ export default function Transactions() {
   });
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-end">
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">Transactions</h2>
-          <p className="text-muted-foreground">View your account activity and history.</p>
+          <h2 className="text-2xl font-bold tracking-tight">Extrato</h2>
+          <p className="text-sm text-muted-foreground">Histórico completo de movimentações.</p>
         </div>
-        <div className="w-[200px]">
-          <Select value={typeFilter} onValueChange={(val: any) => { setTypeFilter(val); setPage(1); }}>
-            <SelectTrigger>
-              <SelectValue placeholder="Filter by type" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Types</SelectItem>
-              <SelectItem value="deposit">Deposit</SelectItem>
-              <SelectItem value="withdrawal">Withdrawal</SelectItem>
-              <SelectItem value="position_buy">Position Buy</SelectItem>
-              <SelectItem value="yield_credit">Yield Credit</SelectItem>
-              <SelectItem value="commission">Commission</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        <Select value={typeFilter} onValueChange={(val: any) => { setTypeFilter(val); setPage(1); }}>
+          <SelectTrigger className="w-full sm:w-48">
+            <SelectValue placeholder="Filtrar por tipo" />
+          </SelectTrigger>
+          <SelectContent>
+            {FILTER_OPTIONS.map(o => (
+              <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>History</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="space-y-2">
-              {[1, 2, 3, 4, 5].map(i => <Skeleton key={i} className="h-12 w-full" />)}
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead className="text-right">Amount</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {pageData?.data.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
-                        No transactions found.
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    pageData?.data.map((tx) => (
-                      <TableRow key={tx.id}>
-                        <TableCell className="whitespace-nowrap">{new Date(tx.createdAt).toLocaleString()}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className="uppercase text-xs">{tx.type.replace('_', ' ')}</Badge>
-                        </TableCell>
-                        <TableCell>{tx.description}</TableCell>
-                        <TableCell className={`text-right font-medium ${tx.amount > 0 ? "text-primary" : tx.amount < 0 ? "text-destructive" : ""}`}>
-                          {tx.amount > 0 ? "+" : ""}${tx.amount.toFixed(2)}
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-              
-              {pageData && pageData.totalPages > 1 && (
-                <div className="flex justify-between items-center pt-4">
-                  <Button variant="outline" disabled={page === 1} onClick={() => setPage(p => p - 1)}>Previous</Button>
-                  <span className="text-sm text-muted-foreground">Page {page} of {pageData.totalPages}</span>
-                  <Button variant="outline" disabled={page === pageData.totalPages} onClick={() => setPage(p => p + 1)}>Next</Button>
+      {/* Transaction list */}
+      <div
+        style={{
+          background: "#111827",
+          border: "1px solid rgba(255,255,255,0.07)",
+          borderRadius: "16px",
+          overflow: "hidden",
+        }}
+      >
+        {isLoading ? (
+          <div className="p-4 space-y-3">
+            {[1, 2, 3, 4, 5].map(i => <Skeleton key={i} className="h-16 rounded-xl" />)}
+          </div>
+        ) : pageData?.data.length === 0 ? (
+          <div style={{ padding: "48px 24px", textAlign: "center" }}>
+            <History style={{ width: "36px", height: "36px", color: "#374151", margin: "0 auto 10px" }} />
+            <p style={{ color: "#64748b", fontSize: "14px" }}>Nenhuma transação encontrada.</p>
+          </div>
+        ) : (
+          <div>
+            {pageData?.data.map((tx, i) => {
+              const color = TX_COLORS[tx.type] ?? "#64748b";
+              const positive = tx.amount > 0;
+              return (
+                <div
+                  key={tx.id}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "12px",
+                    padding: "14px 16px",
+                    borderBottom: i < (pageData.data.length - 1)
+                      ? "1px solid rgba(255,255,255,0.04)"
+                      : undefined,
+                  }}
+                >
+                  {/* Icon */}
+                  <div
+                    style={{
+                      width: "40px",
+                      height: "40px",
+                      borderRadius: "12px",
+                      background: `${color}14`,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0,
+                    }}
+                  >
+                    {positive
+                      ? <ArrowDownLeft style={{ width: "18px", height: "18px", color }} />
+                      : <ArrowUpRight style={{ width: "18px", height: "18px", color }} />}
+                  </div>
+
+                  {/* Info */}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <p
+                        style={{
+                          fontSize: "13px",
+                          fontWeight: 600,
+                          color: "#e2e8f0",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {TX_LABELS[tx.type] ?? tx.type}
+                      </p>
+                    </div>
+                    <p
+                      style={{
+                        fontSize: "11px",
+                        color: "#64748b",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {tx.description}
+                    </p>
+                    <p style={{ fontSize: "10px", color: "#475569", marginTop: "2px" }}>
+                      {new Date(tx.createdAt).toLocaleDateString("pt-BR", {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </p>
+                  </div>
+
+                  {/* Amount */}
+                  <p
+                    style={{
+                      fontSize: "14px",
+                      fontWeight: 800,
+                      color: positive ? "#10b981" : "#ef4444",
+                      whiteSpace: "nowrap",
+                      flexShrink: 0,
+                    }}
+                  >
+                    {positive ? "+" : ""}
+                    {fmtBRL(Math.abs(tx.amount))}
+                  </p>
                 </div>
-              )}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Pagination */}
+      {pageData && pageData.totalPages > 1 && (
+        <div className="flex items-center justify-between gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={page === 1}
+            onClick={() => setPage(p => p - 1)}
+          >
+            Anterior
+          </Button>
+          <span style={{ fontSize: "12px", color: "#64748b" }}>
+            {page} / {pageData.totalPages}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={page === pageData.totalPages}
+            onClick={() => setPage(p => p + 1)}
+          >
+            Próxima
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

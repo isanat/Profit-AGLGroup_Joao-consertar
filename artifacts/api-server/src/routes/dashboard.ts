@@ -14,11 +14,11 @@ router.get("/summary", requireAuth, async (req: AuthRequest, res) => {
     const positions = await db.select().from(userPositionsTable)
       .where(and(eq(userPositionsTable.userId, req.userId!), eq(userPositionsTable.status, "active")));
 
-    const pendingDeposits = await db.select().from(depositsTable)
-      .where(and(eq(depositsTable.userId, req.userId!), eq(depositsTable.status, "pending")));
+    const allDeposits = await db.select().from(depositsTable)
+      .where(eq(depositsTable.userId, req.userId!));
 
-    const pendingWithdrawals = await db.select().from(withdrawalsTable)
-      .where(and(eq(withdrawalsTable.userId, req.userId!), eq(withdrawalsTable.status, "pending")));
+    const allWithdrawals = await db.select().from(withdrawalsTable)
+      .where(eq(withdrawalsTable.userId, req.userId!));
 
     const referralRows = await db.select().from(referralsTable).where(eq(referralsTable.referrerId, req.userId!));
 
@@ -28,6 +28,22 @@ router.get("/summary", requireAuth, async (req: AuthRequest, res) => {
     const totalShares = positions.reduce((acc, p) => acc + Number(p.shares), 0);
     const commissionEarned = commissions.reduce((acc, c) => acc + Number(c.amount), 0);
 
+    const totalDeposited = allDeposits
+      .filter(d => d.status === "confirmed")
+      .reduce((a, d) => a + Number(d.amount), 0);
+
+    const totalWithdrawn = allWithdrawals
+      .filter(w => w.status === "approved")
+      .reduce((a, w) => a + Number(w.netAmount), 0);
+
+    const pendingDeposits = allDeposits
+      .filter(d => d.status === "pending")
+      .reduce((a, d) => a + Number(d.amount), 0);
+
+    const pendingWithdrawals = allWithdrawals
+      .filter(w => w.status === "pending")
+      .reduce((a, w) => a + Number(w.amount), 0);
+
     res.json({
       balance: Number(user.balance),
       totalInvested: Number(user.totalInvested),
@@ -36,10 +52,14 @@ router.get("/summary", requireAuth, async (req: AuthRequest, res) => {
         ? (Number(user.totalYield) / Number(user.totalInvested)) * 100 : 0,
       activePositions: positions.length,
       totalShares,
-      pendingDeposits: pendingDeposits.reduce((a, d) => a + Number(d.amount), 0),
-      pendingWithdrawals: pendingWithdrawals.reduce((a, w) => a + Number(w.amount), 0),
+      totalDeposited,
+      totalWithdrawn,
+      pendingDeposits,
+      pendingWithdrawals,
       referralCount: referralRows.length,
       commissionEarned,
+      referralCode: user.referralCode,
+      userName: user.name,
     });
   } catch (err) {
     req.log.error({ err }, "Dashboard summary error");
