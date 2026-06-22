@@ -448,6 +448,42 @@ router.post("/wallets", async (req: AuthRequest, res) => {
   }
 });
 
+// PATCH /admin/wallets/:id
+router.patch("/wallets/:id", async (req: AuthRequest, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const { method, label, address, instructions, isActive } = req.body;
+    const updates: Record<string, unknown> = {};
+    if (method !== undefined) updates.method = method;
+    if (label !== undefined) updates.label = label;
+    if (address !== undefined) updates.address = address;
+    if (instructions !== undefined) updates.instructions = instructions;
+    if (isActive !== undefined) updates.isActive = isActive;
+    if (Object.keys(updates).length === 0) { res.status(400).json({ error: "No fields to update" }); return; }
+    const [wallet] = await db.update(platformWalletsTable).set(updates).where(eq(platformWalletsTable.id, id)).returning();
+    if (!wallet) { res.status(404).json({ error: "Wallet not found" }); return; }
+    await auditLog({ userId: req.userId!, action: "update_wallet", entityType: "wallet", entityId: id, req });
+    res.json({ id: wallet.id, method: wallet.method, label: wallet.label, address: wallet.address, instructions: wallet.instructions, isActive: wallet.isActive, createdAt: wallet.createdAt });
+  } catch (err) {
+    req.log.error({ err }, "Admin update wallet error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// DELETE /admin/wallets/:id
+router.delete("/wallets/:id", async (req: AuthRequest, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const [deleted] = await db.delete(platformWalletsTable).where(eq(platformWalletsTable.id, id)).returning();
+    if (!deleted) { res.status(404).json({ error: "Wallet not found" }); return; }
+    await auditLog({ userId: req.userId!, action: "delete_wallet", entityType: "wallet", entityId: id, req });
+    res.json({ message: "Carteira removida com sucesso" });
+  } catch (err) {
+    req.log.error({ err }, "Admin delete wallet error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 // POST /admin/notifications/broadcast
 router.post("/notifications/broadcast", async (req: AuthRequest, res) => {
   try {
