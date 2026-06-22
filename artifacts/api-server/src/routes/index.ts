@@ -11,6 +11,7 @@ import transactionsRouter from "./transactions";
 import referralsRouter from "./referrals";
 import notificationsRouter from "./notifications";
 import adminRouter from "./admin";
+import dailyProfitRouter from "./daily-profit";
 
 const router: IRouter = Router();
 
@@ -25,6 +26,7 @@ router.use("/withdrawals", withdrawalsRouter);
 router.use("/transactions", transactionsRouter);
 router.use("/referrals", referralsRouter);
 router.use("/notifications", notificationsRouter);
+router.use("/admin/daily-profit", dailyProfitRouter);
 router.use("/admin", adminRouter);
 
 export default router;

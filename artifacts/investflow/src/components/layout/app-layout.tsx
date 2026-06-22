@@ -15,7 +15,8 @@ import {
   HelpCircle,
   Settings,
   LogOut,
-  Menu
+  Menu,
+  TrendingUp
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLogout } from "@workspace/api-client-react";
@@ -52,10 +53,16 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   ];
 
   const adminItems = [
-    { href: "/admin", label: "Admin Dashboard", icon: LayoutDashboard },
-    { href: "/admin/users", label: "Manage Users", icon: Users },
-    { href: "/admin/strategies", label: "Manage Strategies", icon: LineChart },
-    { href: "/admin/settings", label: "Platform Settings", icon: Settings },
+    { href: "/admin", label: "Dashboard Admin", icon: LayoutDashboard },
+    { href: "/admin/users", label: "Usuários", icon: Users },
+    { href: "/admin/strategies", label: "Estratégias", icon: LineChart },
+    { href: "/admin/daily-profit", label: "Distribuir Lucro Diário", icon: TrendingUp },
+    { href: "/admin/deposits", label: "Depósitos", icon: Wallet },
+    { href: "/admin/withdrawals", label: "Saques", icon: ArrowLeftRight },
+    { href: "/admin/wallets", label: "Carteiras", icon: Wallet },
+    { href: "/admin/notifications", label: "Notificações", icon: Bell },
+    { href: "/admin/audit-logs", label: "Logs de Auditoria", icon: History },
+    { href: "/admin/settings", label: "Configurações", icon: Settings },
   ];
 
   return (

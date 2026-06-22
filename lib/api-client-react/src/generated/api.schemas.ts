@@ -759,6 +759,50 @@ export interface BroadcastNotificationInput {
   targetUserIds?: number[] | null;
 }
 
+export interface DailyProfitSettings {
+  id: number;
+  percentage: number;
+  executionTime: string;
+  active: boolean;
+  days: number[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DailyProfitSettingsInput {
+  /**
+     * @minimum 0.01
+     * @maximum 100
+     */
+  percentage: number;
+  executionTime?: string;
+  active?: boolean;
+  days?: number[];
+}
+
+export interface DailyProfitExecuteResult {
+  processed: number;
+  skipped: number;
+  errors: number;
+  totalProfit: number;
+  duration: number;
+  isManual: boolean;
+}
+
+export interface DailyProfitHistoryEntry {
+  date: string;
+  percentage: number;
+  usersCount: number;
+  totalProfit: number;
+}
+
+export interface DailyProfitHistoryPage {
+  data: DailyProfitHistoryEntry[];
+  total: number;
+  page: number;
+  totalPages: number;
+}
+
 export type GetDashboardPerformanceParams = {
 period?: GetDashboardPerformancePeriod;
 };
@@ -883,5 +927,12 @@ userId?: number;
 action?: string;
 page?: number;
 limit?: number;
+};
+
+export type AdminGetDailyProfitHistoryParams = {
+page?: number;
+limit?: number;
+dateFrom?: string;
+dateTo?: string;
 };
 

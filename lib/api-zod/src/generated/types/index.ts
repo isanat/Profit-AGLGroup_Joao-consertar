@@ -8,6 +8,7 @@
 
 export * from './activityItem';
 export * from './adminDashboard';
+export * from './adminGetDailyProfitHistoryParams';
 export * from './adminListDepositsParams';
 export * from './adminListUsersParams';
 export * from './adminListUsersStatus';
@@ -28,6 +29,11 @@ export * from './commission';
 export * from './commissionStatus';
 export * from './confirmDepositInput';
 export * from './confirmDepositInputStatus';
+export * from './dailyProfitExecuteResult';
+export * from './dailyProfitHistoryEntry';
+export * from './dailyProfitHistoryPage';
+export * from './dailyProfitSettings';
+export * from './dailyProfitSettingsInput';
 export * from './dashboardSummary';
 export * from './deposit';
 export * from './depositInput';

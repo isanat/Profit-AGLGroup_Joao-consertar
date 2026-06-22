@@ -22,6 +22,7 @@ import type {
 import type {
   ActivityItem,
   AdminDashboard,
+  AdminGetDailyProfitHistoryParams,
   AdminListDepositsParams,
   AdminListUsersParams,
   AdminListWithdrawalsParams,
@@ -34,6 +35,10 @@ import type {
   ChangePasswordInput,
   Commission,
   ConfirmDepositInput,
+  DailyProfitExecuteResult,
+  DailyProfitHistoryPage,
+  DailyProfitSettings,
+  DailyProfitSettingsInput,
   DashboardSummary,
   Deposit,
   DepositInput,
@@ -4397,4 +4402,306 @@ export const useAdminBroadcastNotification = <TError = ErrorType<unknown>,
       > => {
       return useMutation(getAdminBroadcastNotificationMutationOptions(options));
     }
+
+export const getAdminGetDailyProfitSettingsUrl = () => {
+
+
+
+
+  return `/api/admin/daily-profit/settings`
+}
+
+/**
+ * @summary Get daily profit settings
+ */
+export const adminGetDailyProfitSettings = async ( options?: RequestInit): Promise<DailyProfitSettings> => {
+
+  return customFetch<DailyProfitSettings>(getAdminGetDailyProfitSettingsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getAdminGetDailyProfitSettingsQueryKey = () => {
+    return [
+    `/api/admin/daily-profit/settings`
+    ] as const;
+    }
+
+
+export const getAdminGetDailyProfitSettingsQueryOptions = <TData = Awaited<ReturnType<typeof adminGetDailyProfitSettings>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof adminGetDailyProfitSettings>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getAdminGetDailyProfitSettingsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof adminGetDailyProfitSettings>>> = ({ signal }) => adminGetDailyProfitSettings({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof adminGetDailyProfitSettings>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type AdminGetDailyProfitSettingsQueryResult = NonNullable<Awaited<ReturnType<typeof adminGetDailyProfitSettings>>>
+export type AdminGetDailyProfitSettingsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get daily profit settings
+ */
+
+export function useAdminGetDailyProfitSettings<TData = Awaited<ReturnType<typeof adminGetDailyProfitSettings>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof adminGetDailyProfitSettings>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getAdminGetDailyProfitSettingsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getAdminSaveDailyProfitSettingsUrl = () => {
+
+
+
+
+  return `/api/admin/daily-profit/settings`
+}
+
+/**
+ * @summary Save daily profit settings
+ */
+export const adminSaveDailyProfitSettings = async (dailyProfitSettingsInput: DailyProfitSettingsInput, options?: RequestInit): Promise<DailyProfitSettings> => {
+
+  return customFetch<DailyProfitSettings>(getAdminSaveDailyProfitSettingsUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      dailyProfitSettingsInput,)
+  }
+);}
+
+
+
+
+export const getAdminSaveDailyProfitSettingsMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminSaveDailyProfitSettings>>, TError,{data: BodyType<DailyProfitSettingsInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof adminSaveDailyProfitSettings>>, TError,{data: BodyType<DailyProfitSettingsInput>}, TContext> => {
+
+const mutationKey = ['adminSaveDailyProfitSettings'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof adminSaveDailyProfitSettings>>, {data: BodyType<DailyProfitSettingsInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  adminSaveDailyProfitSettings(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AdminSaveDailyProfitSettingsMutationResult = NonNullable<Awaited<ReturnType<typeof adminSaveDailyProfitSettings>>>
+    export type AdminSaveDailyProfitSettingsMutationBody = BodyType<DailyProfitSettingsInput>
+    export type AdminSaveDailyProfitSettingsMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Save daily profit settings
+ */
+export const useAdminSaveDailyProfitSettings = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminSaveDailyProfitSettings>>, TError,{data: BodyType<DailyProfitSettingsInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof adminSaveDailyProfitSettings>>,
+        TError,
+        {data: BodyType<DailyProfitSettingsInput>},
+        TContext
+      > => {
+      return useMutation(getAdminSaveDailyProfitSettingsMutationOptions(options));
+    }
+
+export const getAdminExecuteDailyProfitUrl = () => {
+
+
+
+
+  return `/api/admin/daily-profit/execute`
+}
+
+/**
+ * @summary Manually execute daily profit distribution
+ */
+export const adminExecuteDailyProfit = async ( options?: RequestInit): Promise<DailyProfitExecuteResult> => {
+
+  return customFetch<DailyProfitExecuteResult>(getAdminExecuteDailyProfitUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getAdminExecuteDailyProfitMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminExecuteDailyProfit>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof adminExecuteDailyProfit>>, TError,void, TContext> => {
+
+const mutationKey = ['adminExecuteDailyProfit'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof adminExecuteDailyProfit>>, void> = () => {
+
+
+          return  adminExecuteDailyProfit(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AdminExecuteDailyProfitMutationResult = NonNullable<Awaited<ReturnType<typeof adminExecuteDailyProfit>>>
+
+    export type AdminExecuteDailyProfitMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Manually execute daily profit distribution
+ */
+export const useAdminExecuteDailyProfit = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminExecuteDailyProfit>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof adminExecuteDailyProfit>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getAdminExecuteDailyProfitMutationOptions(options));
+    }
+
+export const getAdminGetDailyProfitHistoryUrl = (params?: AdminGetDailyProfitHistoryParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/admin/daily-profit/history?${stringifiedParams}` : `/api/admin/daily-profit/history`
+}
+
+/**
+ * @summary Get daily profit distribution history
+ */
+export const adminGetDailyProfitHistory = async (params?: AdminGetDailyProfitHistoryParams, options?: RequestInit): Promise<DailyProfitHistoryPage> => {
+
+  return customFetch<DailyProfitHistoryPage>(getAdminGetDailyProfitHistoryUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getAdminGetDailyProfitHistoryQueryKey = (params?: AdminGetDailyProfitHistoryParams,) => {
+    return [
+    `/api/admin/daily-profit/history`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getAdminGetDailyProfitHistoryQueryOptions = <TData = Awaited<ReturnType<typeof adminGetDailyProfitHistory>>, TError = ErrorType<unknown>>(params?: AdminGetDailyProfitHistoryParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof adminGetDailyProfitHistory>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getAdminGetDailyProfitHistoryQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof adminGetDailyProfitHistory>>> = ({ signal }) => adminGetDailyProfitHistory(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof adminGetDailyProfitHistory>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type AdminGetDailyProfitHistoryQueryResult = NonNullable<Awaited<ReturnType<typeof adminGetDailyProfitHistory>>>
+export type AdminGetDailyProfitHistoryQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get daily profit distribution history
+ */
+
+export function useAdminGetDailyProfitHistory<TData = Awaited<ReturnType<typeof adminGetDailyProfitHistory>>, TError = ErrorType<unknown>>(
+ params?: AdminGetDailyProfitHistoryParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof adminGetDailyProfitHistory>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getAdminGetDailyProfitHistoryQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
 

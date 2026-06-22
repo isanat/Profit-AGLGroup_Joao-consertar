@@ -1204,3 +1204,79 @@ export const AdminBroadcastNotificationResponse = zod.object({
 })
 
 
+/**
+ * @summary Get daily profit settings
+ */
+export const AdminGetDailyProfitSettingsResponse = zod.object({
+  "id": zod.number(),
+  "percentage": zod.number(),
+  "executionTime": zod.string(),
+  "active": zod.boolean(),
+  "days": zod.array(zod.number()),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Save daily profit settings
+ */
+export const adminSaveDailyProfitSettingsBodyPercentageMin = 0.01;
+export const adminSaveDailyProfitSettingsBodyPercentageMax = 100;
+
+
+
+export const AdminSaveDailyProfitSettingsBody = zod.object({
+  "percentage": zod.number().min(adminSaveDailyProfitSettingsBodyPercentageMin).max(adminSaveDailyProfitSettingsBodyPercentageMax),
+  "executionTime": zod.string().optional(),
+  "active": zod.boolean().optional(),
+  "days": zod.array(zod.number()).optional()
+})
+
+export const AdminSaveDailyProfitSettingsResponse = zod.object({
+  "id": zod.number(),
+  "percentage": zod.number(),
+  "executionTime": zod.string(),
+  "active": zod.boolean(),
+  "days": zod.array(zod.number()),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Manually execute daily profit distribution
+ */
+export const AdminExecuteDailyProfitResponse = zod.object({
+  "processed": zod.number(),
+  "skipped": zod.number(),
+  "errors": zod.number(),
+  "totalProfit": zod.number(),
+  "duration": zod.number(),
+  "isManual": zod.boolean()
+})
+
+
+/**
+ * @summary Get daily profit distribution history
+ */
+export const AdminGetDailyProfitHistoryQueryParams = zod.object({
+  "page": zod.coerce.number().optional(),
+  "limit": zod.coerce.number().optional(),
+  "dateFrom": zod.coerce.string().optional(),
+  "dateTo": zod.coerce.string().optional()
+})
+
+export const AdminGetDailyProfitHistoryResponse = zod.object({
+  "data": zod.array(zod.object({
+  "date": zod.string(),
+  "percentage": zod.number(),
+  "usersCount": zod.number(),
+  "totalProfit": zod.number()
+})),
+  "total": zod.number(),
+  "page": zod.number(),
+  "totalPages": zod.number()
+})
+
+

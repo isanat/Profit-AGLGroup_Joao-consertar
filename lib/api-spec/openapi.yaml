@@ -1252,6 +1252,93 @@ paths:
               schema:
                 $ref: "#/components/schemas/MessageResponse"
 
+  /admin/daily-profit/settings:
+    get:
+      operationId: adminGetDailyProfitSettings
+      tags: [admin]
+      summary: Get daily profit settings
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DailyProfitSettings"
+    post:
+      operationId: adminSaveDailyProfitSettings
+      tags: [admin]
+      summary: Save daily profit settings
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DailyProfitSettingsInput"
+      responses:
+        "200":
+          description: Saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DailyProfitSettings"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/daily-profit/execute:
+    post:
+      operationId: adminExecuteDailyProfit
+      tags: [admin]
+      summary: Manually execute daily profit distribution
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Execution result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DailyProfitExecuteResult"
+
+  /admin/daily-profit/history:
+    get:
+      operationId: adminGetDailyProfitHistory
+      tags: [admin]
+      summary: Get daily profit distribution history
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+        - in: query
+          name: limit
+          schema:
+            type: integer
+        - in: query
+          name: dateFrom
+          schema:
+            type: string
+        - in: query
+          name: dateTo
+          schema:
+            type: string
+      responses:
+        "200":
+          description: History
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DailyProfitHistoryPage"
+
 components:
   securitySchemes:
     bearerAuth:
@@ -2247,3 +2334,88 @@ components:
           type: ["array", "null"]
           items:
             type: integer
+
+    DailyProfitSettings:
+      type: object
+      required: [id, percentage, executionTime, active, days, createdAt, updatedAt]
+      properties:
+        id:
+          type: integer
+        percentage:
+          type: number
+        executionTime:
+          type: string
+        active:
+          type: boolean
+        days:
+          type: array
+          items:
+            type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    DailyProfitSettingsInput:
+      type: object
+      required: [percentage]
+      properties:
+        percentage:
+          type: number
+          minimum: 0.01
+          maximum: 100
+        executionTime:
+          type: string
+        active:
+          type: boolean
+        days:
+          type: array
+          items:
+            type: integer
+
+    DailyProfitExecuteResult:
+      type: object
+      required: [processed, skipped, errors, totalProfit, duration, isManual]
+      properties:
+        processed:
+          type: integer
+        skipped:
+          type: integer
+        errors:
+          type: integer
+        totalProfit:
+          type: number
+        duration:
+          type: integer
+        isManual:
+          type: boolean
+
+    DailyProfitHistoryEntry:
+      type: object
+      required: [date, percentage, usersCount, totalProfit]
+      properties:
+        date:
+          type: string
+        percentage:
+          type: number
+        usersCount:
+          type: integer
+        totalProfit:
+          type: number
+
+    DailyProfitHistoryPage:
+      type: object
+      required: [data, total, page, totalPages]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/DailyProfitHistoryEntry"
+        total:
+          type: integer
+        page:
+          type: integer
+        totalPages:
+          type: integer

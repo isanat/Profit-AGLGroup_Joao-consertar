@@ -1,0 +1,239 @@
+Implementar Módulo de Distribuição de Lucro Diário no Painel Admin
+
+Crie um novo item no menu administrativo chamado:
+
+📊 Distribuir Lucro Diário
+
+A funcionalidade deve permitir configurar e automatizar a distribuição diária de rendimentos variáveis para os usuários.
+
+Localização do menu
+
+Adicionar no painel administrativo:
+
+Admin → Distribuir Lucro Diário
+
+Criar a rota:
+
+/admin/daily-profit
+Interface do módulo
+
+A página deve conter:
+
+Configurações de distribuição
+Percentual diário (%)
+Dias da semana em que a distribuição será executada
+Horário de execução
+Status (Ativo/Inativo)
+Campos obrigatórios
+Percentual do dia
+
+Exemplos:
+
+0.5
+1.2
+2.5
+
+Validação:
+
+Valor mínimo: 0,01%
+Valor máximo: 100%
+Seleção dos dias da semana
+
+Criar checkboxes:
+
+Domingo
+Segunda-feira
+Terça-feira
+Quarta-feira
+Quinta-feira
+Sexta-feira
+Sábado
+
+Permitir selecionar múltiplos dias.
+
+Horário
+
+Definir por padrão:
+
+18:00
+
+Permitir alteração futura pelo administrador.
+
+Botões
+Salvar configuração
+Executar distribuição manualmente
+Visualizar histórico
+Regras de negócio
+
+Ao executar a distribuição:
+
+Buscar todos os usuários com investimentos ativos.
+Calcular o lucro diário com base no percentual configurado.
+Creditar automaticamente o valor na carteira de rendimentos do usuário.
+Registrar cada distribuição no banco de dados.
+
+Fórmula:
+
+lucro = valor_investido × (percentual / 100)
+
+Exemplo:
+
+Investimento: 100 USDT
+Percentual: 1,5%
+
+Lucro diário: 1,50 USDT
+Banco de dados
+
+Criar tabela:
+
+daily_profit_settings
+
+Campos:
+
+id
+percentage
+execution_time
+active
+created_at
+updated_at
+
+Criar tabela:
+
+daily_profit_days
+
+Campos:
+
+id
+setting_id
+day_of_week
+
+Criar tabela:
+
+daily_profit_history
+
+Campos:
+
+id
+user_id
+investment_id
+percentage
+investment_amount
+profit_amount
+executed_at
+created_at
+
+Criar índices para:
+
+- user_id
+- executed_at
+- investment_id
+
+---
+
+## Automação (Cron Job)
+
+Implementar um processo automático que execute todos os dias.
+
+Horário padrão:
+
+```text
+18:00
+
+Requisitos:
+
+Validar se o dia atual está selecionado.
+Validar se a configuração está ativa.
+Impedir execução duplicada no mesmo dia.
+Registrar logs detalhados.
+Continuar processando mesmo que um usuário gere erro.
+
+Exemplo de pseudocódigo:
+
+cron.schedule("0 18 * * *", async () => {
+  await executeDailyProfit();
+});
+
+Utilizar o fuso horário correto do sistema.
+
+Proteção contra duplicidade
+
+Antes de creditar o lucro:
+
+Verificar se já existe registro para:
+
+usuário + investimento + data atual
+
+Se existir:
+
+Ignorar processamento.
+Registrar log de duplicidade.
+Histórico administrativo
+
+Criar uma tabela na interface exibindo:
+
+Data
+Percentual aplicado
+Quantidade de usuários processados
+Valor total distribuído
+Status da execução
+
+Adicionar filtros:
+
+Data inicial
+Data final
+Percentual
+Execução manual
+
+Criar botão:
+
+Executar agora
+
+Regras:
+
+Solicitar confirmação.
+Executar usando as mesmas regras do cron.
+Respeitar bloqueio de duplicidade.
+Logs
+
+Registrar:
+
+Início da execução
+Usuários processados
+Usuários ignorados
+Erros encontrados
+Valor total distribuído
+Tempo total de processamento
+Testes obrigatórios
+
+Após implementar, execute testes completos:
+
+Cenário 1
+Configurar 1%
+Selecionar dia atual
+Executar manualmente
+Verificar crédito correto
+Cenário 2
+Executar novamente no mesmo dia
+Confirmar que não houve duplicidade
+Cenário 3
+Agendar para 18:00
+Simular execução automática
+Validar funcionamento do cron
+Cenário 4
+Desativar configuração
+Confirmar que o cron não executa
+Cenário 5
+Validar histórico gerado
+Cenário 6
+Testar com múltiplos usuários e investimentos
+
+Ao finalizar, apresentar relatório contendo:
+
+Arquivos criados
+Arquivos alterados
+Estrutura das tabelas
+Resultado dos testes
+Evidências de que o cron está executando corretamente
+Evidências de que não existe duplicidade de pagamentos
+
+⚠️ Importante: testar toda a funcionalidade antes de concluir a implementação. Nenhuma alteração deve ser considerada finalizada sem testes automatizados e validação manual.
