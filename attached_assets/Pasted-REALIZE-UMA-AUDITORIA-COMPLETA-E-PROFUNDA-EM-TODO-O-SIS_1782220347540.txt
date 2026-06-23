@@ -1,0 +1,310 @@
+REALIZE UMA AUDITORIA COMPLETA E PROFUNDA EM TODO O SISTEMA AGL GROUP.
+
+ATENÇÃO:
+O sistema não utiliza mais o domínio antigo:
+
+https://profit-navigator--brasilprimer.replit.app/
+
+Agora o domínio oficial é:
+
+https://aglgroup.online/
+
+OBJETIVO:
+Verificar todo o projeto, identificar referências antigas ao domínio do Replit e corrigir completamente para o novo domínio oficial.
+
+━━━━━━━━━━━━━━━━━━━━━━
+AUDITORIA DE DOMÍNIO
+━━━━━━━━━━━━━━━━━━━━━━
+
+Verificar:
+
+✓ Front-end
+✓ Back-end
+✓ API
+✓ Banco de Dados
+✓ Emails
+✓ Webhooks
+✓ Links de indicação
+✓ Rotas protegidas
+✓ Redirecionamentos
+✓ Sitemap
+✓ SEO
+✓ Metatags
+✓ Canonical URLs
+✓ Open Graph
+✓ Compartilhamento WhatsApp
+✓ Compartilhamento Telegram
+✓ Compartilhamento Facebook
+
+Substituir qualquer referência encontrada para:
+
+https://aglgroup.online
+
+━━━━━━━━━━━━━━━━━━━━━━
+LINK DE INDICAÇÃO
+━━━━━━━━━━━━━━━━━━━━━━
+
+Auditar completamente o sistema de indicação.
+
+Verificar:
+
+✓ Geração de links
+✓ Registro do indicado
+✓ Captura do código de indicação
+✓ Persistência no banco
+✓ Árvore de rede
+✓ Ganhos diretos
+✓ Ganhos indiretos
+✓ Comissões
+✓ Rastreamento de afiliados
+
+O link de indicação deve seguir o padrão:
+
+https://aglgroup.online/register?ref=CODIGO
+
+ou
+
+https://aglgroup.online/cadastro?ref=CODIGO
+
+Validar:
+
+✓ Clique no link
+✓ Captura automática do código
+✓ Cadastro do usuário
+✓ Associação correta ao patrocinador
+✓ Exibição na rede
+✓ Registro no banco de dados
+
+Criar testes automáticos para validar todo o fluxo.
+
+━━━━━━━━━━━━━━━━━━━━━━
+AUDITORIA DE ROTAS
+━━━━━━━━━━━━━━━━━━━━━━
+
+Verificar todas as rotas:
+
+/
+/login
+/register
+/cadastro
+/dashboard
+/plans
+/strategies
+/profile
+/wallet
+/deposit
+/withdraw
+/admin
+
+Validar:
+
+✓ Navegação
+✓ Redirecionamentos
+✓ Proteção de autenticação
+✓ Sessão
+✓ Logout
+✓ Recuperação de senha
+
+Corrigir qualquer rota quebrada.
+
+━━━━━━━━━━━━━━━━━━━━━━
+ORGANIZAÇÃO DOS PLANOS
+━━━━━━━━━━━━━━━━━━━━━━
+
+Atualmente os planos estão fora de ordem.
+
+Organizar automaticamente do MENOR para o MAIOR valor.
+
+Ordem correta:
+
+AGL 1 — R$ 10,00
+
+AGL 2 — R$ 50,00
+
+AGL 3 — R$ 150,00
+
+AGL 4 — R$ 300,00
+
+AGL 5 — R$ 500,00
+
+AGL 6 — R$ 1.000,00
+
+Garantir que:
+
+✓ Desktop
+✓ Mobile
+✓ Tablet
+
+exibam exatamente esta ordem.
+
+A ordenação deve ocorrer pelo valor do plano.
+
+━━━━━━━━━━━━━━━━━━━━━━
+AUDITORIA DE INVESTIMENTOS
+━━━━━━━━━━━━━━━━━━━━━━
+
+Testar:
+
+✓ Compra de plano
+✓ Criação do investimento
+✓ Atualização do saldo
+✓ Registro da transação
+✓ Histórico
+✓ Lucro diário
+✓ Distribuição automática
+✓ Encerramento do plano
+✓ Retorno máximo
+
+Validar cálculos.
+
+Validar banco de dados.
+
+Validar logs.
+
+━━━━━━━━━━━━━━━━━━━━━━
+AUDITORIA DE DEPÓSITOS
+━━━━━━━━━━━━━━━━━━━━━━
+
+Testar:
+
+✓ PIX
+✓ USDT
+
+Validar:
+
+✓ Geração
+✓ Aprovação
+✓ Confirmação
+✓ Crédito em conta
+
+Verificar duplicidade.
+
+Verificar falhas.
+
+━━━━━━━━━━━━━━━━━━━━━━
+AUDITORIA DE SAQUES
+━━━━━━━━━━━━━━━━━━━━━━
+
+Testar:
+
+✓ Solicitação
+✓ Aprovação
+✓ Rejeição
+✓ Taxa de saque
+✓ Histórico
+
+Validar:
+
+✓ PIX
+✓ USDT
+
+Confirmar cálculos.
+
+━━━━━━━━━━━━━━━━━━━━━━
+AUDITORIA DA REDE
+━━━━━━━━━━━━━━━━━━━━━━
+
+Validar:
+
+✓ Indicações diretas
+✓ Indicações indiretas
+✓ Estrutura multinível
+✓ Contagem de membros
+✓ Ganhos de rede
+✓ Atualização em tempo real
+
+Corrigir qualquer divergência.
+
+━━━━━━━━━━━━━━━━━━━━━━
+AUDITORIA ADMINISTRATIVA
+━━━━━━━━━━━━━━━━━━━━━━
+
+Verificar:
+
+✓ Dashboard Admin
+✓ Usuários
+✓ Estratégias
+✓ Depósitos
+✓ Saques
+✓ Carteiras
+✓ Distribuir Lucro Diário
+
+Garantir funcionamento completo.
+
+━━━━━━━━━━━━━━━━━━━━━━
+DISTRIBUIÇÃO DE LUCRO
+━━━━━━━━━━━━━━━━━━━━━━
+
+Testar:
+
+✓ Cron Job
+✓ Agendamento automático
+✓ Dias da semana configurados
+✓ Percentual configurável
+✓ Execução automática
+
+Validar:
+
+✓ Horário correto
+✓ Registro em logs
+✓ Registro em banco
+✓ Crédito para usuários
+
+━━━━━━━━━━━━━━━━━━━━━━
+AUDITORIA DE SEGURANÇA
+━━━━━━━━━━━━━━━━━━━━━━
+
+Verificar:
+
+✓ Autenticação
+✓ JWT
+✓ Sessões
+✓ CSRF
+✓ XSS
+✓ SQL Injection
+✓ Rate Limit
+✓ Permissões Admin
+
+Corrigir vulnerabilidades encontradas.
+
+━━━━━━━━━━━━━━━━━━━━━━
+AUDITORIA DE PERFORMANCE
+━━━━━━━━━━━━━━━━━━━━━━
+
+Analisar:
+
+✓ Tempo de carregamento
+✓ Consultas ao banco
+✓ APIs
+✓ Componentes React
+✓ Renderizações desnecessárias
+
+Otimizar tudo que for possível.
+
+━━━━━━━━━━━━━━━━━━━━━━
+RELATÓRIO FINAL
+━━━━━━━━━━━━━━━━━━━━━━
+
+Ao finalizar:
+
+1. Listar todos os problemas encontrados.
+
+2. Listar todas as correções realizadas.
+
+3. Mostrar todas as rotas auditadas.
+
+4. Mostrar testes executados.
+
+5. Mostrar resultado dos testes.
+
+6. Confirmar que o sistema está utilizando exclusivamente:
+
+https://aglgroup.online
+
+7. Confirmar que o link de indicação está funcionando.
+
+8. Confirmar que os planos estão ordenados do menor para o maior.
+
+9. Confirmar que todas as funcionalidades foram testadas com sucesso.
+
+NÃO FINALIZE A TAREFA SEM EXECUTAR TESTES REAIS DE FUNCIONAMENTO.

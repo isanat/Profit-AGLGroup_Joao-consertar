@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, strategiesTable, strategyPerformanceTable, userPositionsTable } from "@workspace/db";
-import { eq, and } from "drizzle-orm";
+import { eq, and, asc } from "drizzle-orm";
 import { requireAuth, type AuthRequest } from "../middlewares/auth";
 
 const router = Router();
@@ -8,8 +8,8 @@ const router = Router();
 // GET /strategies
 router.get("/", requireAuth, async (req: AuthRequest, res) => {
   try {
-    let query = db.select().from(strategiesTable);
-    const strategies = await query;
+    const strategies = await db.select().from(strategiesTable)
+      .orderBy(asc(strategiesTable.minInvestment));
     const { status, riskLevel, category } = req.query;
     const filtered = strategies.filter(s => {
       if (status && s.status !== status) return false;

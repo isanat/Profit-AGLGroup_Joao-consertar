@@ -117,7 +117,8 @@ router.patch("/users/:id", async (req: AuthRequest, res) => {
 // GET /admin/strategies
 router.get("/strategies", async (req: AuthRequest, res) => {
   try {
-    const strategies = await db.select().from(strategiesTable).orderBy(desc(strategiesTable.createdAt));
+    const { asc: ascOp } = await import("drizzle-orm");
+    const strategies = await db.select().from(strategiesTable).orderBy(ascOp(strategiesTable.minInvestment));
     res.json(strategies.map(formatStrategy));
   } catch (err) {
     req.log.error({ err }, "Admin list strategies error");

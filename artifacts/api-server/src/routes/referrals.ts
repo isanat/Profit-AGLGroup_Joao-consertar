@@ -30,9 +30,12 @@ router.get("/", requireAuth, async (req: AuthRequest, res) => {
     }
 
     const commissionRate = Number(await getSetting("referralCommissionPercent")) || 5;
-    const baseUrl = process.env.REPLIT_DOMAINS
-      ? `https://${process.env.REPLIT_DOMAINS.split(",")[0]}`
-      : "http://localhost:80";
+    // Prefer SITE_URL env (custom domain), then find aglgroup.online in REPLIT_DOMAINS, else first domain
+    const siteUrl = process.env.SITE_URL
+      || (process.env.REPLIT_DOMAINS?.split(",").map(d => d.trim()).find(d => d.includes("aglgroup")) ?? null)
+      || (process.env.REPLIT_DOMAINS ? `https://${process.env.REPLIT_DOMAINS.split(",")[0].trim()}` : null)
+      || "http://localhost:80";
+    const baseUrl = siteUrl.startsWith("http") ? siteUrl : `https://${siteUrl}`;
 
     const refMembers = refs.map(r => {
       const u = userMap[r.referredId];
