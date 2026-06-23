@@ -104,130 +104,176 @@ export default function Dashboard() {
       {/* ── Hero card ── */}
       <div
         style={{
-          background: "linear-gradient(135deg, #0f1e35 0%, #111827 50%, #0c1a2e 100%)",
-          border: "1px solid rgba(245,158,11,0.25)",
           borderRadius: "20px",
-          padding: "24px",
           position: "relative",
           overflow: "hidden",
+          border: "1px solid rgba(245,158,11,0.30)",
+          minHeight: "220px",
         }}
       >
-        {/* Decorative glow */}
+        {/* Background image */}
         <div
           style={{
             position: "absolute",
-            top: "-40px",
-            right: "-40px",
-            width: "160px",
-            height: "160px",
-            background: "radial-gradient(circle, rgba(245,158,11,0.12) 0%, transparent 70%)",
+            inset: 0,
+            backgroundImage: "url('/hero-bg.png')",
+            backgroundSize: "cover",
+            backgroundPosition: "center 40%",
+            backgroundRepeat: "no-repeat",
+          }}
+        />
+        {/* Dark gradient overlay — keeps text readable */}
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            background:
+              "linear-gradient(135deg, rgba(7,12,22,0.92) 0%, rgba(11,17,32,0.80) 50%, rgba(14,20,38,0.72) 100%)",
+          }}
+        />
+        {/* Gold shimmer top-right */}
+        <div
+          style={{
+            position: "absolute",
+            top: "-30px",
+            right: "-30px",
+            width: "180px",
+            height: "180px",
+            background: "radial-gradient(circle, rgba(245,158,11,0.18) 0%, transparent 65%)",
+            pointerEvents: "none",
+          }}
+        />
+        {/* Green shimmer bottom-left */}
+        <div
+          style={{
+            position: "absolute",
+            bottom: "-20px",
+            left: "-20px",
+            width: "140px",
+            height: "140px",
+            background: "radial-gradient(circle, rgba(16,185,129,0.10) 0%, transparent 65%)",
             pointerEvents: "none",
           }}
         />
 
-        <div className="flex items-center gap-4 mb-5">
-          {/* Avatar */}
-          <div
-            style={{
-              width: "56px",
-              height: "56px",
-              borderRadius: "50%",
-              background: "linear-gradient(135deg, #b45309, #f59e0b)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: "22px",
-              fontWeight: 800,
-              color: "#fff",
-              flexShrink: 0,
-              boxShadow: "0 0 0 3px rgba(245,158,11,0.2)",
-            }}
-          >
-            {initial}
+        {/* Content */}
+        <div style={{ position: "relative", zIndex: 1, padding: "20px" }}>
+          {/* Top row: avatar + name + VIP badge */}
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              {/* Avatar */}
+              <div
+                style={{
+                  width: "48px",
+                  height: "48px",
+                  borderRadius: "50%",
+                  background: "linear-gradient(135deg, #b45309, #f59e0b)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: "20px",
+                  fontWeight: 800,
+                  color: "#fff",
+                  flexShrink: 0,
+                  boxShadow: "0 0 0 2px rgba(245,158,11,0.35), 0 4px 12px rgba(0,0,0,0.5)",
+                }}
+              >
+                {initial}
+              </div>
+              <div className="min-w-0">
+                <p style={{ fontSize: "11px", color: "rgba(255,255,255,0.45)", marginBottom: "1px" }}>
+                  Bem-vindo de volta
+                </p>
+                <p
+                  style={{
+                    fontSize: "15px",
+                    fontWeight: 700,
+                    color: "#f1f5f9",
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    maxWidth: "160px",
+                    textShadow: "0 1px 4px rgba(0,0,0,0.8)",
+                  }}
+                >
+                  {user?.name}
+                </p>
+              </div>
+            </div>
+            {/* VIP chip */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "5px",
+                background: "linear-gradient(135deg, rgba(245,158,11,0.20), rgba(180,83,9,0.20))",
+                border: "1px solid rgba(245,158,11,0.45)",
+                borderRadius: "20px",
+                padding: "4px 10px",
+                backdropFilter: "blur(8px)",
+              }}
+            >
+              <Wallet style={{ width: "11px", height: "11px", color: "#f59e0b" }} />
+              <span style={{ fontSize: "10px", fontWeight: 800, color: "#f59e0b", letterSpacing: "0.08em" }}>
+                VIP
+              </span>
+            </div>
           </div>
-          <div className="min-w-0">
-            <p style={{ fontSize: "13px", color: "#64748b", marginBottom: "2px" }}>Bem-vindo de volta</p>
+
+          {/* Balance block */}
+          <div style={{ marginBottom: "16px" }}>
+            <p style={{ fontSize: "11px", color: "rgba(255,255,255,0.50)", marginBottom: "4px", fontWeight: 500 }}>
+              Saldo Disponível
+            </p>
             <p
               style={{
-                fontSize: "17px",
-                fontWeight: 700,
-                color: "#f1f5f9",
-                whiteSpace: "nowrap",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-              }}
-            >
-              {user?.name}
-            </p>
-            <span
-              style={{
-                display: "inline-block",
-                fontSize: "10px",
-                fontWeight: 700,
-                letterSpacing: "0.1em",
+                fontSize: "34px",
+                fontWeight: 900,
                 color: "#f59e0b",
-                background: "rgba(245,158,11,0.12)",
-                border: "1px solid rgba(245,158,11,0.3)",
-                borderRadius: "20px",
-                padding: "1px 8px",
-                marginTop: "2px",
+                letterSpacing: "-0.03em",
+                lineHeight: 1,
+                textShadow: "0 2px 12px rgba(245,158,11,0.30)",
               }}
             >
-              VIP
-            </span>
+              {fmtBRL(summary.balance ?? 0)}
+            </p>
           </div>
-        </div>
 
-        {/* Balance */}
-        <div style={{ marginBottom: "4px" }}>
-          <p style={{ fontSize: "12px", color: "#64748b", fontWeight: 500, marginBottom: "4px" }}>
-            Saldo Disponível
-          </p>
-          <p
+          {/* Bottom row: 3 quick stats */}
+          <div
             style={{
-              fontSize: "36px",
-              fontWeight: 900,
-              color: "#f59e0b",
-              letterSpacing: "-0.03em",
-              lineHeight: 1,
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr 1fr",
+              gap: "8px",
+              paddingTop: "14px",
+              borderTop: "1px solid rgba(255,255,255,0.10)",
             }}
           >
-            {fmtBRL(summary.balance ?? 0)}
-          </p>
-        </div>
-
-        {/* Quick stats row */}
-        <div
-          style={{
-            display: "flex",
-            gap: "16px",
-            marginTop: "16px",
-            paddingTop: "16px",
-            borderTop: "1px solid rgba(255,255,255,0.07)",
-          }}
-        >
-          <div>
-            <p style={{ fontSize: "10px", color: "#64748b", marginBottom: "2px" }}>Planos Ativos</p>
-            <p style={{ fontSize: "16px", fontWeight: 700, color: "#10b981" }}>
-              {summary.activePositions ?? 0}
-            </p>
-          </div>
-          {(summary as any).pendingDeposits > 0 && (
             <div>
-              <p style={{ fontSize: "10px", color: "#64748b", marginBottom: "2px" }}>Dep. Pendente</p>
-              <p style={{ fontSize: "16px", fontWeight: 700, color: "#fbbf24" }}>
-                {fmtBRL((summary as any).pendingDeposits)}
+              <p style={{ fontSize: "10px", color: "rgba(255,255,255,0.40)", marginBottom: "3px" }}>
+                Ganhos Totais
+              </p>
+              <p style={{ fontSize: "13px", fontWeight: 700, color: "#10b981", textShadow: "0 1px 4px rgba(0,0,0,0.6)" }}>
+                +{fmtBRL(summary.totalYield ?? 0)}
               </p>
             </div>
-          )}
-          {(summary as any).referralCode && (
-            <div className="ml-auto">
-              <p style={{ fontSize: "10px", color: "#64748b", marginBottom: "2px" }}>Código</p>
-              <p style={{ fontSize: "14px", fontWeight: 700, color: "#94a3b8", letterSpacing: "0.05em" }}>
-                {(summary as any).referralCode}
+            <div>
+              <p style={{ fontSize: "10px", color: "rgba(255,255,255,0.40)", marginBottom: "3px" }}>
+                Planos Ativos
+              </p>
+              <p style={{ fontSize: "13px", fontWeight: 700, color: "#60a5fa", textShadow: "0 1px 4px rgba(0,0,0,0.6)" }}>
+                {summary.activePositions ?? 0}
               </p>
             </div>
-          )}
+            <div>
+              <p style={{ fontSize: "10px", color: "rgba(255,255,255,0.40)", marginBottom: "3px" }}>
+                Código
+              </p>
+              <p style={{ fontSize: "12px", fontWeight: 700, color: "rgba(255,255,255,0.70)", letterSpacing: "0.06em" }}>
+                {(summary as any).referralCode ?? "—"}
+              </p>
+            </div>
+          </div>
         </div>
       </div>
 
