@@ -1,0 +1,233 @@
+REALIZE AS CORREÇÕES E MELHORIAS ABAIXO NO SISTEMA AGL GROUP E EXECUTE TESTES REAIS ANTES DE FINALIZAR.
+
+━━━━━━━━━━━━━━━━━━━━━━
+1 - TELA DE SAQUE
+━━━━━━━━━━━━━━━━━━━━━━
+
+Atualmente o usuário não consegue visualizar claramente quanto irá receber após a taxa de saque.
+
+Implementar na tela de saque:
+
+Campos:
+
+✓ Valor solicitado
+✓ Taxa de saque configurada pelo Admin
+✓ Valor líquido a receber
+
+Exemplo:
+
+Valor solicitado:
+R$ 100,00
+
+Taxa configurada:
+5%
+
+Desconto:
+R$ 5,00
+
+Valor líquido a receber:
+R$ 95,00
+
+O cálculo deve ocorrer em tempo real enquanto o usuário digita o valor.
+
+Se o administrador alterar a taxa para:
+
+1%
+2%
+3%
+5%
+10%
+
+o cálculo deve atualizar automaticamente sem necessidade de alterar código.
+
+Buscar sempre a taxa cadastrada no painel administrativo.
+
+Adicionar um card visual premium mostrando:
+
+━━━━━━━━━━━━━━
+Resumo do Saque
+━━━━━━━━━━━━━━
+
+Valor solicitado
+Taxa aplicada
+Desconto
+Valor líquido
+
+━━━━━━━━━━━━━━━━━━━━━━
+2 - GANHOS DIÁRIOS AUTOMÁTICOS
+━━━━━━━━━━━━━━━━━━━━━━
+
+Verificar completamente a lógica de distribuição de ganhos diários.
+
+Atualmente foi executada manualmente e nenhum usuário recebeu valores.
+
+Realizar auditoria completa:
+
+✓ Cron Job
+✓ Scheduler
+✓ Banco de dados
+✓ Investimentos ativos
+✓ Cálculo dos lucros
+✓ Crédito na carteira
+✓ Registro das transações
+✓ Atualização do dashboard
+
+Identificar exatamente o motivo dos ganhos não terem sido distribuídos.
+
+Corrigir definitivamente.
+
+━━━━━━━━━━━━━━━━━━━━━━
+3 - HORÁRIO CONFIGURÁVEL DOS GANHOS
+━━━━━━━━━━━━━━━━━━━━━━
+
+Adicionar configuração no painel administrativo.
+
+Menu:
+
+Admin
+→ Distribuir Lucro Diário
+
+Adicionar campos:
+
+✓ Hora de execução
+✓ Minuto de execução
+✓ Dias da semana
+✓ Ativar/Desativar execução automática
+
+Exemplo:
+
+Hora:
+11
+
+Minuto:
+00
+
+Dias:
+Segunda
+Terça
+Quarta
+Quinta
+Sexta
+Sábado
+Domingo
+
+O sistema deve executar automaticamente no horário configurado.
+
+Não deixar horário fixo no código.
+
+O administrador deve controlar tudo pelo painel.
+
+━━━━━━━━━━━━━━━━━━━━━━
+4 - TESTE DE DISTRIBUIÇÃO MANUAL
+━━━━━━━━━━━━━━━━━━━━━━
+
+Ao clicar em:
+
+"Executar Distribuição Agora"
+
+o sistema deve:
+
+✓ Localizar todos os investimentos ativos
+✓ Calcular o lucro diário
+✓ Creditar o valor ao usuário
+✓ Registrar no histórico
+✓ Atualizar dashboard
+✓ Gerar logs
+
+Após executar mostrar:
+
+Quantidade de usuários processados
+Valor total distribuído
+Quantidade de investimentos processados
+
+━━━━━━━━━━━━━━━━━━━━━━
+5 - DASHBOARD DO USUÁRIO
+━━━━━━━━━━━━━━━━━━━━━━
+
+Verificar os cards da imagem enviada.
+
+Atualmente os valores não estão sendo atualizados.
+
+Corrigir:
+
+✓ Ganhos Totais
+✓ Total Sacado
+✓ Lucro Recebido
+✓ Histórico Financeiro
+
+Os dados devem vir diretamente do banco.
+
+Ganhos Totais:
+
+Somar todos os lucros recebidos.
+
+Total Sacado:
+
+Somar todos os saques aprovados.
+
+Atualizar em tempo real após:
+
+✓ Distribuição de lucro
+✓ Saque
+✓ Depósito
+✓ Compra de plano
+
+━━━━━━━━━━━━━━━━━━━━━━
+6 - AUDITORIA COMPLETA DOS CÁLCULOS
+━━━━━━━━━━━━━━━━━━━━━━
+
+Verificar:
+
+✓ Rentabilidade diária
+✓ Percentuais dos planos
+✓ Acúmulo de lucros
+✓ Limites máximos
+✓ Encerramento do plano
+✓ Distribuição automática
+
+Validar todos os cálculos.
+
+━━━━━━━━━━━━━━━━━━━━━━
+7 - LOGS E MONITORAMENTO
+━━━━━━━━━━━━━━━━━━━━━━
+
+Criar logs completos para:
+
+✓ Distribuição diária
+✓ Erros
+✓ Créditos
+✓ Saques
+✓ Depósitos
+
+Salvar:
+
+Data
+Hora
+Usuário
+Valor
+Resultado
+
+━━━━━━━━━━━━━━━━━━━━━━
+8 - TESTES OBRIGATÓRIOS
+━━━━━━━━━━━━━━━━━━━━━━
+
+Antes de finalizar:
+
+✓ Criar usuário teste
+✓ Criar investimento teste
+✓ Rodar distribuição manual
+✓ Confirmar crédito na carteira
+✓ Confirmar atualização do dashboard
+✓ Confirmar atualização dos cards
+✓ Confirmar registro da transação
+✓ Confirmar atualização dos ganhos totais
+
+Gerar relatório final mostrando:
+
+1. Problemas encontrados
+2. Correções realizadas
+3. Resultado dos testes
+4. Evidência de que os ganhos estão sendo creditados corretamente
+5. Evidência de que os cards do dashboard estão atualizando corretamente
+
+NÃO FINALIZAR A TAREFA SEM EXECUTAR TESTES REAIS E COMPROVAR O FUNCIONAMENTO.

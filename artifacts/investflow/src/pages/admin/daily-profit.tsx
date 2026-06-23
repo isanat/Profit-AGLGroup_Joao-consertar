@@ -59,6 +59,9 @@ export default function AdminDailyProfit() {
   const [active, setActive] = useState<boolean>(true);
   const [selectedDays, setSelectedDays] = useState<number[]>([]);
   const [initialized, setInitialized] = useState(false);
+  const [lastResult, setLastResult] = useState<{
+    processed: number; skipped: number; errors: number; totalProfit: number; duration: number;
+  } | null>(null);
 
   // Sync form state once settings are loaded
   if (settings && !initialized) {
@@ -99,9 +102,16 @@ export default function AdminDailyProfit() {
   const handleExecute = async () => {
     try {
       const result = await executeProfit.mutateAsync(undefined as any);
-      toast.success(
-        `Distribuição concluída: ${result.processed} posições processadas, R$ ${result.totalProfit.toFixed(2)} distribuídos`,
-      );
+      setLastResult(result);
+      if (result.processed > 0) {
+        toast.success(
+          `Distribuição concluída: ${result.processed} posições processadas, R$ ${result.totalProfit.toFixed(2)} distribuídos`,
+        );
+      } else if (result.skipped > 0) {
+        toast.info(`Nenhuma posição nova: ${result.skipped} já receberam lucro hoje`);
+      } else {
+        toast.warning("Nenhuma posição ativa encontrada para distribuir");
+      }
       queryClient.invalidateQueries({ queryKey: getAdminGetDailyProfitHistoryQueryKey() });
     } catch (err: any) {
       toast.error(err?.data?.error || "Erro ao executar distribuição");
@@ -301,6 +311,43 @@ export default function AdminDailyProfit() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Execution result */}
+          {lastResult !== null && (
+            <Card className={`border ${lastResult.processed > 0 ? "border-emerald-500/30" : "border-amber-500/30"}`}>
+              <CardHeader className="pb-3">
+                <CardTitle className={`text-sm font-semibold flex items-center gap-2 ${lastResult.processed > 0 ? "text-emerald-400" : "text-amber-400"}`}>
+                  <Play className="h-3.5 w-3.5" />
+                  Resultado da Última Execução
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="rounded-md bg-emerald-500/5 border border-emerald-500/20 p-3">
+                    <p className="text-xs text-muted-foreground flex items-center gap-1"><Users className="h-3 w-3" />Posições Processadas</p>
+                    <p className="font-bold text-lg text-emerald-400">{lastResult.processed}</p>
+                  </div>
+                  <div className="rounded-md bg-muted/20 p-3">
+                    <p className="text-xs text-muted-foreground">Já tinham recebido</p>
+                    <p className="font-bold text-lg text-muted-foreground">{lastResult.skipped}</p>
+                  </div>
+                  <div className="rounded-md bg-amber-500/5 border border-amber-500/20 p-3">
+                    <p className="text-xs text-muted-foreground flex items-center gap-1"><DollarSign className="h-3 w-3" />Total Distribuído</p>
+                    <p className="font-bold text-lg text-amber-400">R$ {fmtBRL(lastResult.totalProfit)}</p>
+                  </div>
+                  <div className="rounded-md bg-muted/20 p-3">
+                    <p className="text-xs text-muted-foreground flex items-center gap-1"><Clock className="h-3 w-3" />Tempo</p>
+                    <p className="font-bold text-lg">{lastResult.duration}ms</p>
+                  </div>
+                </div>
+                {lastResult.errors > 0 && (
+                  <div className="mt-3 rounded-md border border-red-500/30 bg-red-500/5 p-3">
+                    <p className="text-xs text-red-400 font-medium">{lastResult.errors} erro(s) durante a execução. Verifique os logs do servidor.</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           {/* Quick stats from history */}
           {!historyLoading && history && history.data.length > 0 && (

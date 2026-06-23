@@ -2,22 +2,23 @@ import { useRequestWithdrawal, WithdrawalInputMethod } from "@workspace/api-clie
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/lib/auth";
-import { ArrowUpRight, Wallet, AlertTriangle } from "lucide-react";
+import { ArrowUpRight, Wallet, AlertTriangle, Receipt, ChevronRight, Minus, DollarSign } from "lucide-react";
+import { useEffect, useState } from "react";
 
 const fmtBRL = (v: number) =>
   `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-const withdrawalSchema = z.object({
-  amount: z.coerce.number().min(10, "Valor mínimo é R$ 10,00"),
-  method: z.enum(["pix", "usdt_bep20", "bitcoin", "usdc", "bnb"] as const),
-  walletAddress: z.string().min(5, "Chave PIX ou endereço é obrigatório"),
-});
+interface FeeInfo {
+  feePercent: number;
+  minWithdrawal: number;
+  maxWithdrawal: number;
+}
 
 const METHOD_LABELS: Record<string, string> = {
   pix: "PIX",
@@ -30,11 +31,37 @@ const METHOD_LABELS: Record<string, string> = {
 export default function Withdraw() {
   const { user } = useAuth();
   const requestWithdrawal = useRequestWithdrawal();
+  const [feeInfo, setFeeInfo] = useState<FeeInfo>({ feePercent: 2, minWithdrawal: 10, maxWithdrawal: 100000 });
+
+  useEffect(() => {
+    const token = localStorage.getItem("accessToken");
+    fetch("/api/withdrawals/fee-info", {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((r) => r.json())
+      .then((info: FeeInfo) => {
+        if (info && typeof info.feePercent === "number") setFeeInfo(info);
+      })
+      .catch(() => {});
+  }, []);
+
+  const withdrawalSchema = z.object({
+    amount: z.coerce.number()
+      .min(feeInfo.minWithdrawal, `Valor mínimo é ${fmtBRL(feeInfo.minWithdrawal)}`)
+      .max(feeInfo.maxWithdrawal, `Valor máximo é ${fmtBRL(feeInfo.maxWithdrawal)}`),
+    method: z.enum(["pix", "usdt_bep20", "bitcoin", "usdc", "bnb"] as const),
+    walletAddress: z.string().min(5, "Chave PIX ou endereço é obrigatório"),
+  });
 
   const form = useForm<z.infer<typeof withdrawalSchema>>({
     resolver: zodResolver(withdrawalSchema),
     defaultValues: { amount: 0, method: "pix", walletAddress: "" },
   });
+
+  const amountValue = useWatch({ control: form.control, name: "amount" }) || 0;
+  const amount = Number(amountValue) || 0;
+  const fee = parseFloat(((amount * feeInfo.feePercent) / 100).toFixed(2));
+  const netAmount = parseFloat((amount - fee).toFixed(2));
 
   const onSubmit = (data: z.infer<typeof withdrawalSchema>) => {
     requestWithdrawal.mutate(
@@ -175,7 +202,7 @@ export default function Withdraw() {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel style={{ fontSize: "12px", fontWeight: 600, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.08em" }}>
-                    Valor (R$)
+                    Valor Solicitado (R$)
                   </FormLabel>
                   <FormControl>
                     <div className="relative">
@@ -196,7 +223,7 @@ export default function Withdraw() {
                       <Input
                         type="number"
                         step="0.01"
-                        min="10"
+                        min={feeInfo.minWithdrawal}
                         placeholder="0,00"
                         style={{ paddingLeft: "42px", fontSize: "16px", fontWeight: 700, height: "52px" }}
                         {...field}
@@ -207,6 +234,67 @@ export default function Withdraw() {
                 </FormItem>
               )}
             />
+
+            {/* Real-time fee summary card */}
+            {amount > 0 && (
+              <div
+                style={{
+                  background: "linear-gradient(135deg, rgba(16,185,129,0.05) 0%, rgba(245,158,11,0.05) 100%)",
+                  border: "1px solid rgba(16,185,129,0.2)",
+                  borderRadius: "14px",
+                  overflow: "hidden",
+                }}
+              >
+                {/* Header */}
+                <div
+                  style={{
+                    padding: "12px 16px",
+                    borderBottom: "1px solid rgba(255,255,255,0.06)",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                  }}
+                >
+                  <Receipt style={{ width: "14px", height: "14px", color: "#10b981" }} />
+                  <span style={{ fontSize: "12px", fontWeight: 700, color: "#10b981", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                    Resumo do Saque
+                  </span>
+                </div>
+
+                {/* Lines */}
+                <div style={{ padding: "14px 16px", display: "flex", flexDirection: "column", gap: "10px" }}>
+                  {/* Valor solicitado */}
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                      <DollarSign style={{ width: "14px", height: "14px", color: "#64748b" }} />
+                      <span style={{ fontSize: "13px", color: "#94a3b8" }}>Valor solicitado</span>
+                    </div>
+                    <span style={{ fontSize: "13px", fontWeight: 600, color: "#e2e8f0" }}>{fmtBRL(amount)}</span>
+                  </div>
+
+                  {/* Taxa */}
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                      <Minus style={{ width: "14px", height: "14px", color: "#ef4444" }} />
+                      <span style={{ fontSize: "13px", color: "#94a3b8" }}>Taxa de saque ({feeInfo.feePercent}%)</span>
+                    </div>
+                    <span style={{ fontSize: "13px", fontWeight: 600, color: "#ef4444" }}>- {fmtBRL(fee)}</span>
+                  </div>
+
+                  {/* Divider */}
+                  <div style={{ height: "1px", background: "rgba(255,255,255,0.06)" }} />
+
+                  {/* Valor líquido */}
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                      <ChevronRight style={{ width: "14px", height: "14px", color: "#f59e0b" }} />
+                      <span style={{ fontSize: "14px", fontWeight: 700, color: "#e2e8f0" }}>Valor líquido a receber</span>
+                    </div>
+                    <span style={{ fontSize: "18px", fontWeight: 900, color: "#f59e0b" }}>{fmtBRL(netAmount > 0 ? netAmount : 0)}</span>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <Button
               type="submit"

@@ -7,6 +7,19 @@ import { auditLog } from "../lib/audit";
 
 const router = Router();
 
+// GET /withdrawals/fee-info — returns current fee settings for display in UI
+router.get("/fee-info", requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const feePercent = Number(await getSetting("withdrawalFeePercent")) || 2;
+    const minWithdrawal = Number(await getSetting("minWithdrawal")) || 10;
+    const maxWithdrawal = Number(await getSetting("maxWithdrawal")) || 100000;
+    res.json({ feePercent, minWithdrawal, maxWithdrawal });
+  } catch (err) {
+    req.log.error({ err }, "Get withdrawal fee info error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 // GET /withdrawals
 router.get("/", requireAuth, async (req: AuthRequest, res) => {
   try {

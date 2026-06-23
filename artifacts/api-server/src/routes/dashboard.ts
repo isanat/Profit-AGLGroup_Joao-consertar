@@ -33,7 +33,7 @@ router.get("/summary", requireAuth, async (req: AuthRequest, res) => {
       .reduce((a, d) => a + Number(d.amount), 0);
 
     const totalWithdrawn = allWithdrawals
-      .filter(w => w.status === "approved")
+      .filter(w => w.status === "completed" || w.status === "approved")
       .reduce((a, w) => a + Number(w.netAmount), 0);
 
     const pendingDeposits = allDeposits

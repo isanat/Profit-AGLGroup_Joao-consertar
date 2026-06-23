@@ -114,6 +114,16 @@ export async function executeDailyProfit(opts: { isManual: boolean }): Promise<E
       const investedAmount = Number(pos.investedAmount);
       const profit = parseFloat((investedAmount * (percentage / 100)).toFixed(8));
 
+      // Fetch current user balance for transaction record
+      const [userRow] = await db
+        .select({ balance: usersTable.balance })
+        .from(usersTable)
+        .where(eq(usersTable.id, pos.userId))
+        .limit(1);
+
+      const balanceBefore = Number(userRow?.balance ?? 0);
+      const balanceAfter = parseFloat((balanceBefore + profit).toFixed(8));
+
       // Record history
       await db.insert(dailyProfitHistoryTable).values({
         userId: pos.userId,
@@ -124,10 +134,13 @@ export async function executeDailyProfit(opts: { isManual: boolean }): Promise<E
         executedAt: now,
       });
 
-      // Credit user balance
+      // Credit user balance and update totalYield
       await db
         .update(usersTable)
-        .set({ balance: sql`${usersTable.balance} + ${String(profit)}` })
+        .set({
+          balance: sql`${usersTable.balance} + ${String(profit)}`,
+          totalYield: sql`${usersTable.totalYield} + ${String(profit)}`,
+        })
         .where(eq(usersTable.id, pos.userId));
 
       // Update position yield
@@ -139,13 +152,14 @@ export async function executeDailyProfit(opts: { isManual: boolean }): Promise<E
         })
         .where(eq(userPositionsTable.id, pos.id));
 
-      // Record transaction
+      // Record transaction (balanceBefore/balanceAfter are NOT NULL in schema)
       await db.insert(transactionsTable).values({
         userId: pos.userId,
         type: "yield_credit",
         amount: String(profit),
+        balanceBefore: String(balanceBefore),
+        balanceAfter: String(balanceAfter),
         description: `Rendimento diário de ${percentage}% — posição #${pos.id}`,
-        status: "completed",
       });
 
       // Notify user
