@@ -1,0 +1,265 @@
+ADICIONE essa IMAGEM DE FUNDO PREMIUM NO CARD SUPERIOR DO DASHBOARD DO USUÁRIO.
+
+
+
+OBJETIVO:
+
+
+
+Transformar o card principal do dashboard em uma área visual premium, transmitindo força, agronegócio, tecnologia e valorização da marca Agro Alliance Group.
+
+
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+IMAGEM DE FUNDO
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+
+
+Utilizar a imagem premium do agro em tons dourados e escuros.
+
+
+
+A imagem deve ficar como background do card principal onde aparecem:
+
+
+
+✓ Saldo Disponível
+
+✓ Saldo Total
+
+✓ Ganhos Totais
+
+✓ Código de Referência
+
+✓ Plano Ativo
+
+
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+CONFIGURAÇÃO VISUAL
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+
+
+Aplicar:
+
+
+
+background-size: cover
+
+
+
+background-position: center
+
+
+
+background-repeat: no-repeat
+
+
+
+border-radius: manter atual
+
+
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+OVERLAY PREMIUM
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+
+
+Adicionar overlay escuro para melhorar a leitura dos textos.
+
+
+
+Exemplo:
+
+
+
+background: linear-gradient(
+
+rgba(5,10,20,0.80),
+
+rgba(5,10,20,0.65)
+
+)
+
+
+
+A imagem deve aparecer ao fundo mas sem prejudicar a leitura.
+
+
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+EFEITO GLASSMORPHISM
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+
+
+Aplicar:
+
+
+
+backdrop-filter: blur(4px)
+
+
+
+leve transparência
+
+
+
+efeito premium moderno
+
+
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+TEXTOS
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+
+
+Melhorar contraste.
+
+
+
+Saldo Disponível:
+
+
+
+Cor:
+
+#F5B942
+
+
+
+Valor grande e destacado.
+
+
+
+Demais informações:
+
+
+
+Cor:
+
+#FFFFFF
+
+
+
+Textos secundários:
+
+
+
+rgba(255,255,255,0.85)
+
+
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+EFEITOS PREMIUM
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+
+
+Adicionar brilho dourado suave.
+
+
+
+box-shadow:
+
+
+
+0 0 30px rgba(212,160,23,0.20)
+
+
+
+Adicionar borda premium:
+
+
+
+1px solid rgba(212,160,23,0.25)
+
+
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+RESPONSIVIDADE
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+
+
+Garantir funcionamento perfeito:
+
+
+
+✓ Desktop
+
+✓ Tablet
+
+✓ Mobile
+
+
+
+A imagem deve adaptar sem cortar informações importantes.
+
+
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+OTIMIZAÇÃO
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+
+
+Converter a imagem para WebP.
+
+
+
+Implementar lazy loading.
+
+
+
+Não prejudicar a performance.
+
+
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+TESTES
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+
+
+Validar:
+
+
+
+✓ Leitura dos textos
+
+✓ Responsividade
+
+✓ Performance
+
+✓ Carregamento da imagem
+
+✓ Compatibilidade mobile
+
+✓ Compatibilidade desktop
+
+
+
+Após implementar, apresentar prévia e confirmar que o card principal ficou com aparência premium alinhada à identidade visual da Agro Alliance Group.
