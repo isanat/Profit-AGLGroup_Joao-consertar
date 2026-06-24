@@ -63,7 +63,13 @@ export const LoginResponse = zod.object({
   "balance": zod.number(),
   "totalInvested": zod.number(),
   "totalYield": zod.number(),
-  "createdAt": zod.coerce.date()
+  "createdAt": zod.coerce.date(),
+  "btcWallet": zod.string().nullish(),
+  "usdtWallet": zod.string().nullish(),
+  "usdcWallet": zod.string().nullish(),
+  "pixKeyType": zod.string().nullish(),
+  "pixKey": zod.string().nullish(),
+  "pixBankName": zod.string().nullish()
 })
 })
 
@@ -101,7 +107,13 @@ export const RefreshTokenResponse = zod.object({
   "balance": zod.number(),
   "totalInvested": zod.number(),
   "totalYield": zod.number(),
-  "createdAt": zod.coerce.date()
+  "createdAt": zod.coerce.date(),
+  "btcWallet": zod.string().nullish(),
+  "usdtWallet": zod.string().nullish(),
+  "usdcWallet": zod.string().nullish(),
+  "pixKeyType": zod.string().nullish(),
+  "pixKey": zod.string().nullish(),
+  "pixBankName": zod.string().nullish()
 })
 })
 
@@ -342,6 +354,9 @@ export const ListStrategiesResponseItem = zod.object({
   "maxDrawdown": zod.number(),
   "totalReturnPct": zod.number(),
   "monthlyReturnPct": zod.number(),
+  "dailyProfitPercent": zod.number(),
+  "maxReturnPct": zod.number(),
+  "durationDays": zod.number(),
   "status": zod.enum(['active', 'paused', 'closed']),
   "startDate": zod.coerce.date(),
   "createdAt": zod.coerce.date()
@@ -370,6 +385,9 @@ export const GetStrategyResponse = zod.object({
   "maxDrawdown": zod.number(),
   "totalReturnPct": zod.number(),
   "monthlyReturnPct": zod.number(),
+  "dailyProfitPercent": zod.number(),
+  "maxReturnPct": zod.number(),
+  "durationDays": zod.number(),
   "status": zod.enum(['active', 'paused', 'closed']),
   "startDate": zod.coerce.date(),
   "createdAt": zod.coerce.date()
@@ -895,6 +913,9 @@ export const AdminListStrategiesResponseItem = zod.object({
   "maxDrawdown": zod.number(),
   "totalReturnPct": zod.number(),
   "monthlyReturnPct": zod.number(),
+  "dailyProfitPercent": zod.number(),
+  "maxReturnPct": zod.number(),
+  "durationDays": zod.number(),
   "status": zod.enum(['active', 'paused', 'closed']),
   "startDate": zod.coerce.date(),
   "createdAt": zod.coerce.date()
@@ -951,6 +972,9 @@ export const AdminUpdateStrategyResponse = zod.object({
   "maxDrawdown": zod.number(),
   "totalReturnPct": zod.number(),
   "monthlyReturnPct": zod.number(),
+  "dailyProfitPercent": zod.number(),
+  "maxReturnPct": zod.number(),
+  "durationDays": zod.number(),
   "status": zod.enum(['active', 'paused', 'closed']),
   "startDate": zod.coerce.date(),
   "createdAt": zod.coerce.date()

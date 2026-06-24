@@ -1664,6 +1664,12 @@ components:
           type: number
         monthlyReturnPct:
           type: number
+        dailyProfitPercent:
+          type: number
+        maxReturnPct:
+          type: number
+        durationDays:
+          type: integer
         status:
           type: string
           enum: [active, paused, closed]
@@ -1673,7 +1679,7 @@ components:
         createdAt:
           type: string
           format: date-time
-      required: [id, name, description, riskLevel, category, minInvestment, totalShares, availableShares, sharePrice, aum, maxDrawdown, totalReturnPct, monthlyReturnPct, status, startDate, createdAt]
+      required: [id, name, description, riskLevel, category, minInvestment, totalShares, availableShares, sharePrice, aum, maxDrawdown, totalReturnPct, monthlyReturnPct, dailyProfitPercent, maxReturnPct, durationDays, status, startDate, createdAt]
 
     StrategyDetail:
       allOf:

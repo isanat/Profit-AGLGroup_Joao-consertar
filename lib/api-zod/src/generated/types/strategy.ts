@@ -22,6 +22,9 @@ export interface Strategy {
   maxDrawdown: number;
   totalReturnPct: number;
   monthlyReturnPct: number;
+  dailyProfitPercent: number;
+  maxReturnPct: number;
+  durationDays: number;
   status: StrategyStatus;
   startDate: Date;
   createdAt: Date;
