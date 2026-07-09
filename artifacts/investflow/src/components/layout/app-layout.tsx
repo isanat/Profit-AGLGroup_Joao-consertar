@@ -61,7 +61,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     { href: "/admin", label: "Dashboard Admin", icon: LayoutDashboard },
     { href: "/admin/users", label: "Usuários", icon: Users },
     { href: "/admin/strategies", label: "Estratégias", icon: LineChart },
-    { href: "/admin/daily-profit", label: "Rendimento Diário", icon: TrendingUp },
     { href: "/admin/deposits", label: "Depósitos", icon: Wallet },
     { href: "/admin/withdrawals", label: "Saques", icon: ArrowLeftRight },
     { href: "/admin/payment-invoices", label: "Faturas de Pagamento", icon: CreditCard },

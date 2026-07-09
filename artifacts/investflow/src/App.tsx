@@ -36,7 +36,6 @@ import AdminWallets from "@/pages/admin/wallets";
 import AdminNotifications from "@/pages/admin/notifications";
 import AdminSettings from "@/pages/admin/settings";
 import AdminAuditLogs from "@/pages/admin/audit-logs";
-import AdminDailyProfit from "@/pages/admin/daily-profit";
 import AdminReferrals from "@/pages/admin/referrals";
 import AdminPasswordResets from "@/pages/admin/password-resets";
 import AdminPaymentGateways from "@/pages/admin/payment-gateways";
@@ -125,7 +124,6 @@ function Router() {
       <Route path="/admin/notifications" component={() => <ProtectedRoute component={AdminNotifications} requireAdmin={true} />} />
       <Route path="/admin/settings" component={() => <ProtectedRoute component={AdminSettings} requireAdmin={true} />} />
       <Route path="/admin/audit-logs" component={() => <ProtectedRoute component={AdminAuditLogs} requireAdmin={true} />} />
-      <Route path="/admin/daily-profit" component={() => <ProtectedRoute component={AdminDailyProfit} requireAdmin={true} />} />
       <Route path="/admin/referrals" component={() => <ProtectedRoute component={AdminReferrals} requireAdmin={true} />} />
       <Route path="/admin/password-resets" component={() => <ProtectedRoute component={AdminPasswordResets} requireAdmin={true} />} />
       
