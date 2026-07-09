@@ -86,6 +86,15 @@ export async function getInvoice(invoiceId: string): Promise<NowPaymentsInvoice>
 }
 
 /**
+ * Consulta o status de um PAYMENT (não invoice) pelo ID.
+ * Usado para depósitos cripto onde criamos /payment (retorna endereço+QR),
+ * não /invoice (que retorna hosted page).
+ */
+export async function getPayment(paymentId: string): Promise<NowPaymentsPaymentResult> {
+  return await nowpaymentsFetch(`/payment/${paymentId}`, { method: "GET" }) as NowPaymentsPaymentResult;
+}
+
+/**
  * Verify the IPN signature from NowPayments.
  * NowPayments sends `x-nowpayments-sig` = base64(HMAC-SHA512(body, ipnSecret)).
  * Returns true if the signature is valid.

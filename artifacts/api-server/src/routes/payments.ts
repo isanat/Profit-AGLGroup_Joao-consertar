@@ -197,17 +197,19 @@ router.get("/:id", requireAuth, async (req: AuthRequest, res) => {
     if (invoice.status === "pending" && invoice.providerInvoiceId) {
       try {
         if (invoice.provider === "nowpayments") {
-          const fresh = await npGetInvoice(invoice.providerInvoiceId);
-          const mapped = npMapStatus(fresh.status);
-          if (mapped !== "pending" || fresh.status !== invoice.providerStatus) {
+          // NowPayments: usamos /payment/{id} (não /invoice) pois criamos payments
+          const { getPayment: npGetPayment } = await import("../lib/nowpayments");
+          const fresh = await npGetPayment(invoice.providerInvoiceId);
+          const mapped = npMapStatus(fresh.payment_status);
+          if (mapped !== "pending" || fresh.payment_status !== invoice.providerStatus) {
             await db.update(paymentInvoicesTable).set({
-              providerStatus: fresh.status,
+              providerStatus: fresh.payment_status,
               status: mapped,
               payAddress: fresh.pay_address || invoice.payAddress,
               payAmount: fresh.pay_amount ? String(fresh.pay_amount) : invoice.payAmount,
               metadata: fresh,
             }).where(eq(paymentInvoicesTable.id, id));
-            invoice.providerStatus = fresh.status;
+            invoice.providerStatus = fresh.payment_status;
             invoice.status = mapped;
             if (mapped === "confirmed") {
               await processConfirmedInvoice(id);
