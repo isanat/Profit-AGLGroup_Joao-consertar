@@ -217,6 +217,17 @@ async function seed() {
     { key: "maintenanceMode", value: "false" },
     { key: "depositEnabled", value: "true" },
     { key: "withdrawalEnabled", value: "true" },
+    // Payment gateways (off by default — admin configures keys)
+    { key: "nowpaymentsEnabled", value: "false" },
+    { key: "nowpaymentsApiKey", value: "" },
+    { key: "nowpaymentsIpnSecret", value: "" },
+    { key: "nowpaymentsBaseUrl", value: "https://api.nowpayments.io/v1" },
+    { key: "nowpaymentsPriceCurrency", value: "BRL" },
+    { key: "mercadopagoEnabled", value: "false" },
+    { key: "mercadopagoAccessToken", value: "" },
+    { key: "mercadopagoWebhookSecret", value: "" },
+    { key: "mercadopagoBaseUrl", value: "https://api.mercadopago.com/v1" },
+    { key: "partnerSplitEnabled", value: "true" },
   ];
 
   for (const s of defaultSettings) {

@@ -39,6 +39,9 @@ import AdminAuditLogs from "@/pages/admin/audit-logs";
 import AdminDailyProfit from "@/pages/admin/daily-profit";
 import AdminReferrals from "@/pages/admin/referrals";
 import AdminPasswordResets from "@/pages/admin/password-resets";
+import AdminPaymentGateways from "@/pages/admin/payment-gateways";
+import AdminPartners from "@/pages/admin/partners";
+import AdminPaymentInvoices from "@/pages/admin/payment-invoices";
 
 import NotFound from "@/pages/not-found";
 
@@ -116,6 +119,9 @@ function Router() {
       <Route path="/admin/deposits" component={() => <ProtectedRoute component={AdminDeposits} requireAdmin={true} />} />
       <Route path="/admin/withdrawals" component={() => <ProtectedRoute component={AdminWithdrawals} requireAdmin={true} />} />
       <Route path="/admin/wallets" component={() => <ProtectedRoute component={AdminWallets} requireAdmin={true} />} />
+      <Route path="/admin/payment-gateways" component={() => <ProtectedRoute component={AdminPaymentGateways} requireAdmin={true} />} />
+      <Route path="/admin/partners" component={() => <ProtectedRoute component={AdminPartners} requireAdmin={true} />} />
+      <Route path="/admin/payment-invoices" component={() => <ProtectedRoute component={AdminPaymentInvoices} requireAdmin={true} />} />
       <Route path="/admin/notifications" component={() => <ProtectedRoute component={AdminNotifications} requireAdmin={true} />} />
       <Route path="/admin/settings" component={() => <ProtectedRoute component={AdminSettings} requireAdmin={true} />} />
       <Route path="/admin/audit-logs" component={() => <ProtectedRoute component={AdminAuditLogs} requireAdmin={true} />} />

@@ -28,7 +28,13 @@ app.use(
   }),
 );
 app.use(cors());
-app.use(express.json());
+// Capture raw body for webhook signature verification (NowPayments + Mercado Pago).
+// We attach it as req.rawBody for routes that need it; normal routes still get parsed JSON.
+app.use(express.json({
+  verify: (req: any, _res, buf) => {
+    req.rawBody = buf.toString("utf8");
+  },
+}));
 app.use(express.urlencoded({ extended: true }));
 
 app.use("/api", router);

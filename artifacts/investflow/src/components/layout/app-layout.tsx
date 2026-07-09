@@ -20,6 +20,8 @@ import {
   KeyRound,
   X,
   ChevronRight,
+  CreditCard,
+  Handshake,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLogout } from "@workspace/api-client-react";
@@ -62,6 +64,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     { href: "/admin/daily-profit", label: "Distribuir Lucro Diário", icon: TrendingUp },
     { href: "/admin/deposits", label: "Depósitos", icon: Wallet },
     { href: "/admin/withdrawals", label: "Saques", icon: ArrowLeftRight },
+    { href: "/admin/payment-invoices", label: "Faturas de Pagamento", icon: CreditCard },
+    { href: "/admin/payment-gateways", label: "Gateways & PIX", icon: CreditCard },
+    { href: "/admin/partners", label: "Sócios & Split", icon: Handshake },
     { href: "/admin/wallets", label: "Carteiras", icon: Wallet },
     { href: "/admin/referrals", label: "Indicações", icon: Users },
     { href: "/admin/password-resets", label: "Reset de Senha", icon: KeyRound },

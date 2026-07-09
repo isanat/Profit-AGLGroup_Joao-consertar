@@ -10,6 +10,7 @@ import withdrawalsRouter from "./withdrawals";
 import transactionsRouter from "./transactions";
 import referralsRouter from "./referrals";
 import notificationsRouter from "./notifications";
+import paymentsRouter from "./payments";
 import adminRouter from "./admin";
 import dailyProfitRouter from "./daily-profit";
 
@@ -26,6 +27,7 @@ router.use("/withdrawals", withdrawalsRouter);
 router.use("/transactions", transactionsRouter);
 router.use("/referrals", referralsRouter);
 router.use("/notifications", notificationsRouter);
+router.use("/payments", paymentsRouter);
 router.use("/admin/daily-profit", dailyProfitRouter);
 router.use("/admin", adminRouter);
 

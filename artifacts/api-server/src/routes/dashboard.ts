@@ -74,22 +74,50 @@ router.get("/performance", requireAuth, async (req: AuthRequest, res) => {
     const positions = await db.select().from(userPositionsTable)
       .where(and(eq(userPositionsTable.userId, req.userId!), eq(userPositionsTable.status, "active")));
 
-    // Generate synthetic performance data based on user's positions
+    // Build a REAL performance series from the user's yield_credit transactions.
+    // For each day in the range, value = invested + cumulative yield credited up to that day.
     const now = new Date();
     const days = period === "7d" ? 7 : period === "30d" ? 30 : period === "90d" ? 90 : period === "1y" ? 365 : 180;
-    const points = [];
-    const baseValue = positions.reduce((a, p) => a + Number(p.investedAmount), 0) || 1000;
 
+    const baseValue = positions.reduce((a, p) => a + Number(p.investedAmount), 0);
+    const invested = baseValue;
+
+    // Pull all yield_credit + position_buy transactions in the window
+    const since = new Date(now);
+    since.setDate(since.getDate() - days);
+    const txs = await db.select().from(transactionsTable)
+      .where(eq(transactionsTable.userId, req.userId!));
+    const yieldByDay: Record<string, number> = {};
+    let cumulativeYield = 0;
+    // Seed cumulative with yields older than the window (so the series starts correctly)
+    for (const t of txs) {
+      if (t.type === "yield_credit" && t.createdAt < since) {
+        cumulativeYield += Number(t.amount);
+      }
+    }
+    // Bucket in-window yields by day
+    const inWindowYields = txs
+      .filter(t => t.type === "yield_credit" && t.createdAt >= since)
+      .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+    for (const t of inWindowYields) {
+      const key = t.createdAt.toISOString().slice(0, 10);
+      yieldByDay[key] = (yieldByDay[key] ?? 0) + Number(t.amount);
+    }
+
+    const points: { date: string; value: number; yield: number; yieldPercentage: number }[] = [];
+    let runningYield = cumulativeYield;
     for (let i = days; i >= 0; i--) {
       const date = new Date(now);
       date.setDate(date.getDate() - i);
-      const growth = (days - i) / days * (Math.random() * 0.15 + 0.05);
-      const value = baseValue * (1 + growth);
+      const key = date.toISOString().slice(0, 10);
+      runningYield += yieldByDay[key] ?? 0;
+      const value = invested + runningYield;
+      const yieldPct = invested > 0 ? (runningYield / invested) * 100 : 0;
       points.push({
-        date: date.toISOString().slice(0, 10),
+        date: key,
         value: Math.round(value * 100) / 100,
-        yield: Math.round((value - baseValue) * 100) / 100,
-        yieldPercentage: Math.round(growth * 10000) / 100,
+        yield: Math.round(runningYield * 100) / 100,
+        yieldPercentage: Math.round(yieldPct * 100) / 100,
       });
     }
     res.json(points);

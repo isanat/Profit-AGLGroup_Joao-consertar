@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db, usersTable, strategiesTable, strategyPerformanceTable, depositsTable, withdrawalsTable, userPositionsTable, transactionsTable, notificationsTable, auditLogsTable, platformWalletsTable, settingsTable, commissionsTable, referralsTable } from "@workspace/db";
+import { db, usersTable, strategiesTable, strategyPerformanceTable, depositsTable, withdrawalsTable, userPositionsTable, transactionsTable, notificationsTable, auditLogsTable, platformWalletsTable, settingsTable, commissionsTable, referralsTable, partnersTable, partnerSplitsTable, partnerPayoutsTable, paymentInvoicesTable, webhookEventsTable } from "@workspace/db";
 import { eq, desc, count, sum, ne, and, isNotNull } from "drizzle-orm";
 import { requireAdmin, type AuthRequest } from "../middlewares/auth";
 import { confirmDeposit } from "./deposits";
@@ -36,17 +36,27 @@ router.get("/dashboard", async (req: AuthRequest, res) => {
     const commissionsPaid = commissions.reduce((a, c) => a + Number(c.amount), 0);
     const platformRevenue = withdrawals.reduce((a, w) => a + Number(w.fee), 0);
 
-    // Revenue by month (last 6 months)
-    const revenueByMonth = Array.from({ length: 6 }, (_, i) => {
-      const d = new Date();
-      d.setMonth(d.getMonth() - (5 - i));
-      return {
-        date: d.toISOString().slice(0, 7),
-        value: Math.random() * 50000 + 10000,
-        yield: Math.random() * 5000,
-        yieldPercentage: Math.random() * 10,
-      };
-    });
+    // Revenue by month (last 6 months) — REAL data from confirmed deposits
+    const now = new Date();
+    const months: { date: string; value: number; yield: number; yieldPercentage: number }[] = [];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const monthKey = d.toISOString().slice(0, 7);
+      const monthDeposits = deposits.filter(dep => dep.createdAt.toISOString().slice(0, 7) === monthKey);
+      const monthValue = monthDeposits.reduce((a, dep) => a + Number(dep.amount), 0);
+      // Yield = soma dos yield credits no mês (transactions type yield_credit)
+      const monthYield = 0; // populated below from transactions
+      months.push({ date: monthKey, value: monthValue, yield: monthYield, yieldPercentage: monthValue > 0 ? (monthYield / monthValue) * 100 : 0 });
+    }
+    // Populate yield from transactions (type = yield_credit)
+    const yieldTxs = await db.select().from(transactionsTable);
+    for (const m of months) {
+      m.yield = yieldTxs
+        .filter(t => t.type === "yield_credit" && t.createdAt.toISOString().slice(0, 7) === m.date)
+        .reduce((a, t) => a + Number(t.amount), 0);
+      m.yieldPercentage = m.value > 0 ? (m.yield / m.value) * 100 : 0;
+    }
+    const revenueByMonth = months;
 
     res.json({
       totalUsers, activeUsers, newUsersToday, totalVolume, totalInvested,
@@ -397,9 +407,21 @@ router.get("/settings", async (req: AuthRequest, res) => {
 // PATCH /admin/settings
 router.patch("/settings", async (req: AuthRequest, res) => {
   try {
-    const allowed = ["withdrawalFeePercent", "minWithdrawal", "maxWithdrawal", "minDeposit", "referralCommissionPercent", "referralLevels", "maintenanceMode", "depositEnabled", "withdrawalEnabled"];
+    const allowed = [
+      "withdrawalFeePercent", "minWithdrawal", "maxWithdrawal", "minDeposit",
+      "referralCommissionPercent", "referralLevels", "maintenanceMode",
+      "depositEnabled", "withdrawalEnabled",
+      // Payment gateways
+      "nowpaymentsEnabled", "nowpaymentsApiKey", "nowpaymentsIpnSecret",
+      "nowpaymentsBaseUrl", "nowpaymentsPriceCurrency",
+      "mercadopagoEnabled", "mercadopagoAccessToken", "mercadopagoWebhookSecret",
+      "mercadopagoBaseUrl",
+      // Partner split
+      "partnerSplitEnabled",
+    ];
     for (const key of allowed) {
       if (req.body[key] !== undefined) {
+        // Never store empty secrets over existing ones unless explicitly sent empty
         await setSetting(key, String(req.body[key]));
       }
     }
@@ -407,6 +429,31 @@ router.patch("/settings", async (req: AuthRequest, res) => {
     res.json(await getAllSettings());
   } catch (err) {
     req.log.error({ err }, "Admin update settings error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// ─── Payment gateway status (detailed, admin-only) ────────────────────────────
+router.get("/payment-gateways", async (req: AuthRequest, res) => {
+  try {
+    const s = await getAllSettings();
+    res.json({
+      nowpayments: {
+        enabled: s.nowpaymentsEnabled,
+        apiKeyConfigured: s.nowpaymentsApiKeyConfigured,
+        ipnSecretConfigured: s.nowpaymentsIpnSecretConfigured,
+        baseUrl: s.nowpaymentsBaseUrl,
+        priceCurrency: s.nowpaymentsPriceCurrency,
+      },
+      mercadopago: {
+        enabled: s.mercadopagoEnabled,
+        accessTokenConfigured: s.mercadopagoAccessTokenConfigured,
+        baseUrl: s.mercadopagoBaseUrl,
+      },
+      partnerSplitEnabled: s.partnerSplitEnabled,
+    });
+  } catch (err) {
+    req.log.error({ err }, "Admin payment gateways error");
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -688,6 +735,199 @@ router.get("/password-resets", async (req: AuthRequest, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 });
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// PARTNERS (sócios) — CRUD + splits + payouts
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// GET /admin/partners
+router.get("/partners", async (req: AuthRequest, res) => {
+  try {
+    const partners = await db.select().from(partnersTable).orderBy(desc(partnersTable.createdAt));
+    res.json(partners.map(formatPartner));
+  } catch (err) {
+    req.log.error({ err }, "Admin list partners error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// POST /admin/partners
+router.post("/partners", async (req: AuthRequest, res) => {
+  try {
+    const { name, email, document, splitPercent, payoutMethod, pixKey, pixKeyType, cryptoWallet, bankInfo, notes, status } = req.body;
+    if (!name || splitPercent === undefined) { res.status(400).json({ error: "name and splitPercent are required" }); return; }
+    const pct = Number(splitPercent);
+    if (isNaN(pct) || pct < 0 || pct > 100) { res.status(400).json({ error: "splitPercent must be 0-100" }); return; }
+    const [partner] = await db.insert(partnersTable).values({
+      name, email: email || null, document: document || null,
+      splitPercent: String(pct),
+      payoutMethod: payoutMethod || null, pixKey: pixKey || null, pixKeyType: pixKeyType || null,
+      cryptoWallet: cryptoWallet || null, bankInfo: bankInfo || null,
+      notes: notes || null, status: status || "active",
+    }).returning();
+    await auditLog({ userId: req.userId!, action: "create_partner", entityType: "partner", entityId: partner.id, newValue: JSON.stringify(req.body), req });
+    res.status(201).json(formatPartner(partner));
+  } catch (err) {
+    req.log.error({ err }, "Admin create partner error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// PATCH /admin/partners/:id
+router.patch("/partners/:id", async (req: AuthRequest, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const [before] = await db.select().from(partnersTable).where(eq(partnersTable.id, id));
+    if (!before) { res.status(404).json({ error: "Partner not found" }); return; }
+    const allowed = ["name", "email", "document", "splitPercent", "payoutMethod", "pixKey", "pixKeyType", "cryptoWallet", "bankInfo", "notes", "status"];
+    const updates: Record<string, unknown> = {};
+    for (const k of allowed) {
+      if (req.body[k] !== undefined) {
+        updates[k] = k === "splitPercent" ? String(req.body[k]) : req.body[k];
+      }
+    }
+    if (Object.keys(updates).length === 0) { res.status(400).json({ error: "No fields to update" }); return; }
+    const [partner] = await db.update(partnersTable).set(updates).where(eq(partnersTable.id, id)).returning();
+    await auditLog({ userId: req.userId!, action: "update_partner", entityType: "partner", entityId: id, previousValue: JSON.stringify(before), newValue: JSON.stringify(updates), req });
+    res.json(formatPartner(partner));
+  } catch (err) {
+    req.log.error({ err }, "Admin update partner error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// DELETE /admin/partners/:id
+router.delete("/partners/:id", async (req: AuthRequest, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const [deleted] = await db.delete(partnersTable).where(eq(partnersTable.id, id)).returning();
+    if (!deleted) { res.status(404).json({ error: "Partner not found" }); return; }
+    await auditLog({ userId: req.userId!, action: "delete_partner", entityType: "partner", entityId: id, req });
+    res.json({ message: "Sócio removido" });
+  } catch (err) {
+    req.log.error({ err }, "Admin delete partner error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// GET /admin/partners/:id/splits — histórico de splits de um sócio
+router.get("/partners/:id/splits", async (req: AuthRequest, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const splits = await db.select().from(partnerSplitsTable)
+      .where(eq(partnerSplitsTable.partnerId, id))
+      .orderBy(desc(partnerSplitsTable.createdAt));
+    res.json(splits.map(s => ({
+      id: s.id, baseAmount: Number(s.baseAmount), splitPercent: Number(s.splitPercent),
+      amount: Number(s.amount), status: s.status, description: s.description,
+      userId: s.userId, paymentInvoiceId: s.paymentInvoiceId, paidAt: s.paidAt, createdAt: s.createdAt,
+    })));
+  } catch (err) {
+    req.log.error({ err }, "Admin list partner splits error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// ─── Partner payouts (saques dos sócios) ──────────────────────────────────────
+
+// GET /admin/partner-payouts
+router.get("/partner-payouts", async (req: AuthRequest, res) => {
+  try {
+    const payouts = await db.select().from(partnerPayoutsTable).orderBy(desc(partnerPayoutsTable.createdAt));
+    const partners = await db.select().from(partnersTable);
+    const pmap = Object.fromEntries(partners.map(p => [p.id, p]));
+    res.json(payouts.map(p => ({
+      id: p.id, partnerId: p.partnerId, partnerName: pmap[p.partnerId]?.name ?? "—",
+      amount: Number(p.amount), method: p.method, destination: p.destination,
+      status: p.status, transactionHash: p.transactionHash, notes: p.notes,
+      processedAt: p.processedAt, createdAt: p.createdAt,
+    })));
+  } catch (err) {
+    req.log.error({ err }, "Admin list partner payouts error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// POST /admin/partner-payouts — cria um saque (marca payout como done, debita balanceDue)
+router.post("/partner-payouts", async (req: AuthRequest, res) => {
+  try {
+    const { partnerId, amount, method, destination, notes } = req.body;
+    if (!partnerId || !amount || !method) { res.status(400).json({ error: "partnerId, amount and method are required" }); return; }
+    const [partner] = await db.select().from(partnersTable).where(eq(partnersTable.id, Number(partnerId)));
+    if (!partner) { res.status(404).json({ error: "Partner not found" }); return; }
+    const amt = Number(amount);
+    if (amt <= 0 || amt > Number(partner.balanceDue)) {
+      res.status(400).json({ error: `Valor inválido (saldo disponível: R$ ${Number(partner.balanceDue).toFixed(2)})` }); return;
+    }
+    const [payout] = await db.insert(partnerPayoutsTable).values({
+      partnerId: partner.id, amount: String(amt), method, destination: destination || null, notes: notes || null,
+      status: "completed", processedBy: req.userId, processedAt: new Date(),
+    }).returning();
+    // Debit partner balance + add to totalPaid
+    await db.update(partnersTable).set({
+      balanceDue: String(Number(partner.balanceDue) - amt),
+      totalPaid: String(Number(partner.totalPaid) + amt),
+    }).where(eq(partnersTable.id, partner.id));
+    await auditLog({ userId: req.userId!, action: "create_partner_payout", entityType: "partner_payout", entityId: payout.id, newValue: JSON.stringify(req.body), req });
+    res.status(201).json({ id: payout.id, message: "Payout registrado" });
+  } catch (err) {
+    req.log.error({ err }, "Admin create partner payout error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// PAYMENT INVOICES + WEBHOOK EVENTS — admin view
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// GET /admin/payment-invoices
+router.get("/payment-invoices", async (req: AuthRequest, res) => {
+  try {
+    const { status, provider } = req.query as Record<string, string>;
+    let invoices = await db.select().from(paymentInvoicesTable).orderBy(desc(paymentInvoicesTable.createdAt));
+    if (status) invoices = invoices.filter(i => i.status === status);
+    if (provider) invoices = invoices.filter(i => i.provider === provider);
+    const users = await db.select().from(usersTable);
+    const umap = Object.fromEntries(users.map(u => [u.id, u]));
+    res.json(invoices.map(i => ({
+      id: i.id, userId: i.userId, userName: umap[i.userId]?.name ?? "—", userEmail: umap[i.userId]?.email ?? "",
+      provider: i.provider, providerInvoiceId: i.providerInvoiceId, providerStatus: i.providerStatus,
+      status: i.status, amountRequested: Number(i.amountRequested), priceCurrency: i.priceCurrency,
+      payCurrency: i.payCurrency, payAmount: i.payAmount ? Number(i.payAmount) : null,
+      amountPaid: i.amountPaid ? Number(i.amountPaid) : null,
+      referenceType: i.referenceType, referenceId: i.referenceId,
+      createdAt: i.createdAt, confirmedAt: i.confirmedAt, expiresAt: i.expiresAt,
+    })));
+  } catch (err) {
+    req.log.error({ err }, "Admin list payment invoices error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// GET /admin/webhook-events (debug)
+router.get("/webhook-events", async (req: AuthRequest, res) => {
+  try {
+    const events = await db.select().from(webhookEventsTable).orderBy(desc(webhookEventsTable.createdAt)).limit(50);
+    res.json(events.map(e => ({
+      id: e.id, provider: e.provider, eventId: e.eventId, processed: e.processed,
+      error: e.error, createdAt: e.createdAt, processedAt: e.processedAt,
+    })));
+  } catch (err) {
+    req.log.error({ err }, "Admin list webhook events error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+function formatPartner(p: typeof partnersTable.$inferSelect) {
+  return {
+    id: p.id, name: p.name, email: p.email, document: p.document,
+    splitPercent: Number(p.splitPercent),
+    payoutMethod: p.payoutMethod, pixKey: p.pixKey, pixKeyType: p.pixKeyType,
+    cryptoWallet: p.cryptoWallet, bankInfo: p.bankInfo,
+    balanceDue: Number(p.balanceDue), totalEarned: Number(p.totalEarned), totalPaid: Number(p.totalPaid),
+    notes: p.notes, status: p.status, createdAt: p.createdAt,
+  };
+}
 
 function formatAdminUser(u: typeof usersTable.$inferSelect) {
   return {
