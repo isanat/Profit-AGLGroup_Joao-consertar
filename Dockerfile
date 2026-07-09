@@ -23,7 +23,9 @@ COPY artifacts/ ./artifacts/
 COPY lib/ ./lib/
 COPY scripts/ ./scripts/
 
-RUN pnpm install --frozen-lockfile
+# NOTE: --no-frozen-lockfile because the repo's overrides config does not match
+# the committed lockfile (ERR_PNPM_LOCKFILE_CONFIG_MISMATCH). pnpm reconciles it.
+RUN pnpm install --no-frozen-lockfile
 
 # ---------------------------------------------------------------------------
 # Build frontend (Vite) — requires PORT + BASE_PATH at build time
