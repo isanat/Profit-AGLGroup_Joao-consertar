@@ -476,7 +476,7 @@ router.patch("/settings", async (req: AuthRequest, res) => {
       "depositEnabled", "withdrawalEnabled",
       // Payment gateways
       "nowpaymentsEnabled", "nowpaymentsApiKey", "nowpaymentsIpnSecret", "nowpayments2faSecret",
-      "nowpaymentsBaseUrl", "nowpaymentsPriceCurrency",
+      "nowpaymentsBaseUrl", "nowpaymentsPriceCurrency", "nowpaymentsAcceptedCurrencies",
       "mercadopagoEnabled", "mercadopagoAccessToken", "mercadopagoWebhookSecret",
       "mercadopagoBaseUrl",
       // Partner split
@@ -522,6 +522,27 @@ router.get("/payment-gateways", async (req: AuthRequest, res) => {
     });
   } catch (err) {
     req.log.error({ err }, "Admin payment gateways error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// GET /admin/nowpayments/available-currencies — retorna todas as moedas disponíveis
+// na conta NowPayments + as que o admin marcou como aceitas (para o painel de config)
+router.get("/nowpayments/available-currencies", async (req: AuthRequest, res) => {
+  try {
+    const { getSecretSettings } = await import("../lib/settings");
+    const settings = await getSecretSettings();
+    if (settings.nowpaymentsEnabled !== "true" || !settings.nowpaymentsApiKey) {
+      res.json({ available: [], accepted: [] });
+      return;
+    }
+    const { getAvailableCurrencies } = await import("../lib/nowpayments");
+    const available = await getAvailableCurrencies();
+    let accepted: string[] = [];
+    try { accepted = JSON.parse(settings.nowpaymentsAcceptedCurrencies || "[]"); } catch { accepted = []; }
+    res.json({ available, accepted });
+  } catch (err) {
+    req.log.error({ err }, "Admin nowpayments available currencies error");
     res.status(500).json({ error: "Internal server error" });
   }
 });

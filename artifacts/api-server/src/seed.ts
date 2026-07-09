@@ -236,6 +236,7 @@ async function seed() {
     { key: "nowpaymentsApiKey", value: "" },
     { key: "nowpaymentsIpnSecret", value: "" },
     { key: "nowpayments2faSecret", value: "" },
+    { key: "nowpaymentsAcceptedCurrencies", value: "" },
     { key: "nowpaymentsBaseUrl", value: "https://api.nowpayments.io/v1" },
     { key: "nowpaymentsPriceCurrency", value: "BRL" },
     { key: "mercadopagoEnabled", value: "false" },

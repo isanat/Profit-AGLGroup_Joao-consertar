@@ -41,11 +41,24 @@ router.get("/config", requireAuth, async (req: AuthRequest, res) => {
     const settings = await getSecretSettings();
     const npEnabled = settings.nowpaymentsEnabled === "true" && Boolean(settings.nowpaymentsApiKey);
     const mpEnabled = settings.mercadopagoEnabled === "true" && Boolean(settings.mercadopagoAccessToken);
-    // Buscar moedas disponíveis dinamicamente (só as que o merchant liberou na conta)
+    // Buscar moedas disponíveis no NowPayments, depois FILTRAR pelas que o admin
+    // marcou como aceitas (nowpaymentsAcceptedCurrencies). Se o admin não marcou
+    // nenhuma, usa todas as disponíveis (fallback).
     let currencies: { code: string; label: string; network?: string }[] = [];
     if (npEnabled) {
       const { getAvailableCurrencies } = await import("../lib/nowpayments");
-      currencies = await getAvailableCurrencies();
+      const available = await getAvailableCurrencies();
+      const acceptedRaw = settings.nowpaymentsAcceptedCurrencies || "";
+      let accepted: string[] = [];
+      try { accepted = JSON.parse(acceptedRaw); } catch { accepted = []; }
+      if (Array.isArray(accepted) && accepted.length > 0) {
+        // Filtrar: só as que o admin marcou E estão disponíveis no NowPayments
+        const acceptedLower = accepted.map((c) => String(c).toLowerCase());
+        currencies = available.filter((c) => acceptedLower.includes(c.code.toLowerCase()));
+      } else {
+        // Fallback: todas as disponíveis
+        currencies = available;
+      }
     }
     res.json({
       nowpayments: {

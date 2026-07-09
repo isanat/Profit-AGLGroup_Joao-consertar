@@ -18,6 +18,11 @@ const defaultSettings: Record<string, string> = {
   nowpayments2faSecret: "",
   nowpaymentsBaseUrl: "https://api.nowpayments.io/v1",
   nowpaymentsPriceCurrency: "BRL",
+  // Moedas aceitas para depósito (JSON array de codes). O admin marca no painel
+  // exatamente quais moedas quer oferecer — independente do que o NowPayments
+  // lista como "available_for_payment" (que retorna todas as suportadas).
+  // Vazio = usar todas as disponíveis na conta (fallback).
+  nowpaymentsAcceptedCurrencies: "",
   mercadopagoEnabled: "false",
   mercadopagoAccessToken: "",
   mercadopagoWebhookSecret: "",
