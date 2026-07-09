@@ -134,17 +134,66 @@ export function mapNowPaymentsStatus(status: string): "pending" | "confirming" |
   return "pending";
 }
 
+// ─── JWT Auth (para endpoints que exigem login, como /merchant/coins) ──────────
+let _jwtCache: { token: string; expires: number } | null = null;
+
+/** Autentica na NowPayments (POST /auth com email+password) e retorna o JWT. */
+async function getJwtToken(): Promise<string> {
+  // Cache por 25 min (NowPayments JWT expira em 30 min)
+  if (_jwtCache && Date.now() < _jwtCache.expires) {
+    return _jwtCache.token;
+  }
+  const settings = await getSecretSettings();
+  const email = settings.nowpaymentsEmail;
+  const password = settings.nowpaymentsPassword;
+  if (!email || !password) {
+    throw new Error("NowPayments email/password not configured — required for /merchant/coins");
+  }
+  const baseUrl = (settings.nowpaymentsBaseUrl || "https://api.nowpayments.io/v1").replace(/\/+$/, "");
+  const resp = await fetch(`${baseUrl}/auth`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+  const text = await resp.text();
+  let body: any;
+  try { body = text ? JSON.parse(text) : {}; } catch { body = { raw: text }; }
+  if (!resp.ok) {
+    throw new Error(`NowPayments auth failed ${resp.status}: ${JSON.stringify(body)}`);
+  }
+  const token = body.token;
+  if (!token) throw new Error("NowPayments auth: no token in response");
+  _jwtCache = { token, expires: Date.now() + 25 * 60 * 1000 };
+  return token;
+}
+
 /**
- * Lista as moedas HABILITADAS para pagamento no NowPayments.
- * Usa /full-currencies que retorna objetos com campo is_enabled (true/false),
- * filtrando APENAS as moedas que o merchant liberou na conta.
- * (O endpoint /currencies simples retorna todas as suportadas, sem filtro.)
+ * Lista as moedas HABILITADAS pelo merchant no painel do NowPayments.
+ * Usa GET /merchant/coins (requer JWT) — retorna EXATAMENTE as moedas que o
+ * merchant marcou em Settings → Coins. Não há filtro no código: o que você
+ * habilitar no painel aparece aqui, o que desabilitar some. 100% dinâmico.
+ *
+ * Se a API falhar (ex: email/senha não configurados), retorna lista vazia —
+ * NÃO há fallback hardcoded.
  */
 export async function getAvailableCurrencies(): Promise<{ code: string; label: string; network?: string }[]> {
   try {
-    // /full-currencies retorna { currencies: [{ id, code, is_enabled, ... }, ...] }
-    const result = await nowpaymentsFetch("/full-currencies", { method: "GET" });
-    const all: any[] = Array.isArray(result) ? result : (result.currencies || []);
+    const jwt = await getJwtToken();
+    const settings = await getSecretSettings();
+    const baseUrl = (settings.nowpaymentsBaseUrl || "https://api.nowpayments.io/v1").replace(/\/+$/, "");
+    const resp = await fetch(`${baseUrl}/merchant/coins`, {
+      method: "GET",
+      headers: { "Authorization": `Bearer ${jwt}`, "x-api-key": settings.nowpaymentsApiKey },
+    });
+    const text = await resp.text();
+    let body: any;
+    try { body = text ? JSON.parse(text) : {}; } catch { body = { raw: text }; }
+    if (!resp.ok) {
+      logger.error({ status: resp.status, body }, "NowPayments /merchant/coins failed");
+      return [];
+    }
+    // Resposta: { currencies: ["usdtbsc", "btc", ...] } (array de codes lowercase)
+    const codes: string[] = Array.isArray(body) ? body : (body.currencies || body.coins || []);
     const labelMap: Record<string, { label: string; network: string }> = {
       btc: { label: "Bitcoin (BTC)", network: "Bitcoin" },
       usdttrc20: { label: "USDT (TRC20 / Tron)", network: "Tron" },
@@ -159,43 +208,14 @@ export async function getAvailableCurrencies(): Promise<{ code: string; label: s
       doge: { label: "Dogecoin (DOGE)", network: "Dogecoin" },
       sol: { label: "Solana (SOL)", network: "Solana" },
     };
-    // Filtrar: enable === true E available_for_payment === true E está no labelMap
-    // (NowPayments usa "enable" e "available_for_payment", não "is_enabled")
-    // Importante: a API retorna codes em MAIÚSCULO (BTC, USDTBSC) — normalizar p/ lowercase
-    return all
-      .filter((c) => {
-        const code = String(c.code || c.id || "").toLowerCase();
-        return c.enable === true && c.available_for_payment !== false && labelMap[code];
-      })
-      .map((c) => {
-        const code = String(c.code || c.id || "").toLowerCase();
-        return { code, ...labelMap[code] };
-      });
+    // NO FALLBACK — só retorna as que o merchant habilitou E temos label
+    return codes
+      .map((c) => String(c).toLowerCase())
+      .filter((c) => labelMap[c])
+      .map((c) => ({ code: c, ...labelMap[c] }));
   } catch (err) {
-    logger.error({ err }, "Failed to fetch NowPayments full-currencies — falling back to /currencies");
-    // Fallback: /currencies (retorna todas, sem filtro de is_enabled)
-    try {
-      const result = await nowpaymentsFetch("/currencies", { method: "GET" });
-      const codes: string[] = Array.isArray(result) ? result : (result.currencies || []);
-      const labelMap: Record<string, { label: string; network: string }> = {
-        btc: { label: "Bitcoin (BTC)", network: "Bitcoin" },
-        usdttrc20: { label: "USDT (TRC20 / Tron)", network: "Tron" },
-        usdtbsc: { label: "USDT (BEP20 / BSC)", network: "BSC" },
-        usdterc20: { label: "USDT (ERC20 / Ethereum)", network: "Ethereum" },
-        usdc: { label: "USDC (ERC20)", network: "Ethereum" },
-        usdcbsc: { label: "USDC (BEP20 / BSC)", network: "BSC" },
-        bnb: { label: "BNB (BEP20)", network: "BSC" },
-        eth: { label: "Ethereum (ETH)", network: "Ethereum" },
-        trx: { label: "Tron (TRX)", network: "Tron" },
-        ltc: { label: "Litecoin (LTC)", network: "Litecoin" },
-        doge: { label: "Dogecoin (DOGE)", network: "Dogecoin" },
-        sol: { label: "Solana (SOL)", network: "Solana" },
-      };
-      return codes.filter((c) => labelMap[c]).map((c) => ({ code: c, ...labelMap[c] }));
-    } catch (err2) {
-      logger.error({ err: err2 }, "Failed to fetch NowPayments currencies (fallback)");
-      return [];
-    }
+    logger.error({ err }, "Failed to fetch NowPayments merchant coins");
+    return [];
   }
 }
 

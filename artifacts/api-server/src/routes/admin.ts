@@ -476,7 +476,8 @@ router.patch("/settings", async (req: AuthRequest, res) => {
       "depositEnabled", "withdrawalEnabled",
       // Payment gateways
       "nowpaymentsEnabled", "nowpaymentsApiKey", "nowpaymentsIpnSecret", "nowpayments2faSecret",
-      "nowpaymentsBaseUrl", "nowpaymentsPriceCurrency", "nowpaymentsAcceptedCurrencies",
+      "nowpaymentsEmail", "nowpaymentsPassword",
+      "nowpaymentsBaseUrl", "nowpaymentsPriceCurrency",
       "mercadopagoEnabled", "mercadopagoAccessToken", "mercadopagoWebhookSecret",
       "mercadopagoBaseUrl",
       // Partner split

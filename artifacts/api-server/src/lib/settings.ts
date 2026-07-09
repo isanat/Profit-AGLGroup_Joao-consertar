@@ -16,13 +16,12 @@ const defaultSettings: Record<string, string> = {
   nowpaymentsApiKey: "",
   nowpaymentsIpnSecret: "",
   nowpayments2faSecret: "",
+  // Email + senha da conta NowPayments — necessários para autenticar (JWT) e
+  // buscar as moedas habilitadas pelo merchant via GET /merchant/coins.
+  nowpaymentsEmail: "",
+  nowpaymentsPassword: "",
   nowpaymentsBaseUrl: "https://api.nowpayments.io/v1",
   nowpaymentsPriceCurrency: "BRL",
-  // Moedas aceitas para depósito (JSON array de codes). O admin marca no painel
-  // exatamente quais moedas quer oferecer — independente do que o NowPayments
-  // lista como "available_for_payment" (que retorna todas as suportadas).
-  // Vazio = usar todas as disponíveis na conta (fallback).
-  nowpaymentsAcceptedCurrencies: "",
   mercadopagoEnabled: "false",
   mercadopagoAccessToken: "",
   mercadopagoWebhookSecret: "",
@@ -69,6 +68,8 @@ export async function getAllSettings(): Promise<Record<string, string | number |
     nowpaymentsApiKeyConfigured: Boolean(result.nowpaymentsApiKey),
     nowpaymentsIpnSecretConfigured: Boolean(result.nowpaymentsIpnSecret),
     nowpayments2faSecretConfigured: Boolean(result.nowpayments2faSecret),
+    nowpaymentsEmailConfigured: Boolean(result.nowpaymentsEmail),
+    nowpaymentsPasswordConfigured: Boolean(result.nowpaymentsPassword),
     mercadopagoEnabled: result.mercadopagoEnabled === "true",
     mercadopagoBaseUrl: String(result.mercadopagoBaseUrl),
     mercadopagoAccessTokenConfigured: Boolean(result.mercadopagoAccessToken),

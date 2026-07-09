@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { apiGet, apiPatch } from "@/lib/api";
 
 interface GatewayConfig {
-  nowpayments: { enabled: boolean; apiKeyConfigured: boolean; ipnSecretConfigured: boolean; nowpayments2faSecretConfigured: boolean; baseUrl: string; priceCurrency: string; };
+  nowpayments: { enabled: boolean; apiKeyConfigured: boolean; ipnSecretConfigured: boolean; nowpayments2faSecretConfigured: boolean; emailConfigured: boolean; passwordConfigured: boolean; baseUrl: string; priceCurrency: string; };
   mercadopago: { enabled: boolean; accessTokenConfigured: boolean; baseUrl: string; };
   partnerSplitEnabled: boolean;
 }
@@ -29,6 +29,8 @@ export function PaymentGatewaysContent({ embedded = false }: { embedded?: boolea
     nowpaymentsApiKey: "",
     nowpaymentsIpnSecret: "",
     nowpayments2faSecret: "",
+    nowpaymentsEmail: "",
+    nowpaymentsPassword: "",
     nowpaymentsBaseUrl: "https://api.nowpayments.io/v1",
     nowpaymentsPriceCurrency: "BRL",
     mercadopagoEnabled: false,
@@ -71,6 +73,8 @@ export function PaymentGatewaysContent({ embedded = false }: { embedded?: boolea
       if (form.nowpaymentsApiKey.trim()) body.nowpaymentsApiKey = form.nowpaymentsApiKey.trim();
       if (form.nowpaymentsIpnSecret.trim()) body.nowpaymentsIpnSecret = form.nowpaymentsIpnSecret.trim();
       if (form.nowpayments2faSecret.trim()) body.nowpayments2faSecret = form.nowpayments2faSecret.trim();
+      if (form.nowpaymentsEmail.trim()) body.nowpaymentsEmail = form.nowpaymentsEmail.trim();
+      if (form.nowpaymentsPassword.trim()) body.nowpaymentsPassword = form.nowpaymentsPassword.trim();
       if (form.mercadopagoAccessToken.trim()) body.mercadopagoAccessToken = form.mercadopagoAccessToken.trim();
       if (form.mercadopagoWebhookSecret.trim()) body.mercadopagoWebhookSecret = form.mercadopagoWebhookSecret.trim();
 
@@ -78,7 +82,7 @@ export function PaymentGatewaysContent({ embedded = false }: { embedded?: boolea
       const refreshed = await apiGet<GatewayConfig>("/api/admin/payment-gateways");
       setConfig(refreshed);
       // Clear secret fields after save
-      setForm((f) => ({ ...f, nowpaymentsApiKey: "", nowpaymentsIpnSecret: "", nowpayments2faSecret: "", mercadopagoAccessToken: "", mercadopagoWebhookSecret: "" }));
+      setForm((f) => ({ ...f, nowpaymentsApiKey: "", nowpaymentsIpnSecret: "", nowpayments2faSecret: "", nowpaymentsEmail: "", nowpaymentsPassword: "", mercadopagoAccessToken: "", mercadopagoWebhookSecret: "" }));
       toast.success("Configuração salva com sucesso");
     } catch (e: any) {
       toast.error(e?.message || "Erro ao salvar");
@@ -107,40 +111,6 @@ export function PaymentGatewaysContent({ embedded = false }: { embedded?: boolea
       setCheckingPayout(false);
     }
   };
-
-  // Moedas aceitas para depósito (admin marca quais quer oferecer)
-  const [availableCurrencies, setAvailableCurrencies] = useState<{ code: string; label: string; network?: string }[]>([]);
-  const [acceptedCurrencies, setAcceptedCurrencies] = useState<string[]>([]);
-  const [loadingCurrencies, setLoadingCurrencies] = useState(false);
-  const loadCurrencies = async () => {
-    setLoadingCurrencies(true);
-    try {
-      const result = await apiGet<{ available: { code: string; label: string; network?: string }[]; accepted: string[] }>("/api/admin/nowpayments/available-currencies");
-      setAvailableCurrencies(result.available || []);
-      setAcceptedCurrencies(result.accepted || []);
-    } catch (e: any) {
-      toast.error("Erro ao carregar moedas");
-    } finally {
-      setLoadingCurrencies(false);
-    }
-  };
-  const toggleCurrency = (code: string) => {
-    setAcceptedCurrencies((prev) =>
-      prev.includes(code) ? prev.filter((c) => c !== code) : [...prev, code]
-    );
-  };
-  const saveAcceptedCurrencies = async () => {
-    try {
-      await apiPatch("/api/admin/settings", { nowpaymentsAcceptedCurrencies: JSON.stringify(acceptedCurrencies) });
-      toast.success("Moedas aceitas salvas");
-    } catch (e: any) {
-      toast.error(e?.message || "Erro ao salvar");
-    }
-  };
-  useEffect(() => {
-    if (config?.nowpayments.enabled) loadCurrencies();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [config?.nowpayments.enabled]);
 
   if (loading) {
     return <div className="flex items-center justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
@@ -189,6 +159,14 @@ export function PaymentGatewaysContent({ embedded = false }: { embedded?: boolea
           {form.nowpayments2faSecret && (
             <p className="text-[10px] text-emerald-400">✓ Com o 2FA secret configurado, os payouts para sócios são verificados automaticamente (TOTP) — sem digitar código nem ler email.</p>
           )}
+          <Field label="Email da conta NowPayments" value={form.nowpaymentsEmail} onChange={(v) => setForm({ ...form, nowpaymentsEmail: v })} placeholder={config?.nowpayments.emailConfigured ? "•••••• (preenchido — digite para trocar)" : "email@dominio.com (login do NowPayments)"} type="password" />
+          <Field label="Senha da conta NowPayments" value={form.nowpaymentsPassword} onChange={(v) => setForm({ ...form, nowpaymentsPassword: v })} placeholder={config?.nowpayments.passwordConfigured ? "•••••• (preenchido — digite para trocar)" : "Senha de login do NowPayments"} type="password" />
+          {(form.nowpaymentsEmail || form.nowpaymentsPassword) && (
+            <p className="text-[10px] text-emerald-400">✓ Email + senha permitem buscar as moedas que você habilitou no painel do NowPayments (Settings → Coins). O depósito mostra exatamente essas moedas — 100% dinâmico, sem marcação manual.</p>
+          )}
+          {!config?.nowpayments.emailConfigured && !form.nowpaymentsEmail && (
+            <p className="text-[10px] text-amber-400">⚠ Sem email + senha, não é possível buscar as moedas do painel. O depósito não mostrará nenhuma moeda cripto.</p>
+          )}
           <div className="grid grid-cols-2 gap-3">
             <Field label="Base URL" value={form.nowpaymentsBaseUrl} onChange={(v) => setForm({ ...form, nowpaymentsBaseUrl: v })} />
             <Field label="Moeda do preço" value={form.nowpaymentsPriceCurrency} onChange={(v) => setForm({ ...form, nowpaymentsPriceCurrency: v })} placeholder="BRL" />
@@ -234,57 +212,6 @@ export function PaymentGatewaysContent({ embedded = false }: { embedded?: boolea
           )}
           {!payoutStatus && (
             <p className="text-[10px] text-muted-foreground">Clique em "Verificar" para checar se a conta está habilitada para payouts e ver os saldos.</p>
-          )}
-        </div>
-
-        {/* Moedas aceitas para depósito */}
-        <div className="mt-4 p-3 rounded-lg" style={{ background: "rgba(16,185,129,0.05)", border: "1px solid rgba(16,185,129,0.2)" }}>
-          <div className="flex items-center justify-between mb-2">
-            <div>
-              <p className="text-xs font-bold text-emerald-400">Moedas aceitas para depósito</p>
-              <p className="text-[10px] text-muted-foreground">Marque abaixo EXATAMENTE quais moedas os usuários poderão escolher no depósito. Estas são as moedas disponíveis na sua conta NowPayments.</p>
-            </div>
-            <Button size="sm" variant="outline" onClick={loadCurrencies} disabled={loadingCurrencies}>
-              {loadingCurrencies ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : null}
-              {loadingCurrencies ? "Carregando..." : "Atualizar"}
-            </Button>
-          </div>
-          {loadingCurrencies ? (
-            <p className="text-xs text-muted-foreground">Carregando moedas disponíveis...</p>
-          ) : availableCurrencies.length === 0 ? (
-            <p className="text-xs text-amber-400">Nenhuma moeda disponível. Verifique se a API Key está correta e se há moedas habilitadas na conta NowPayments.</p>
-          ) : (
-            <>
-              <div className="grid grid-cols-2 gap-2 mt-2">
-                {availableCurrencies.map((c) => {
-                  const checked = acceptedCurrencies.includes(c.code);
-                  return (
-                    <button
-                      key={c.code}
-                      type="button"
-                      onClick={() => toggleCurrency(c.code)}
-                      className={`px-3 py-2 rounded-md text-xs font-medium border transition-all text-left flex items-center gap-2 ${
-                        checked
-                          ? "border-emerald-500 bg-emerald-500/10 text-emerald-400"
-                          : "border-border bg-muted/30 text-muted-foreground hover:border-muted-foreground"
-                      }`}
-                    >
-                      <span className={`w-2 h-2 rounded-full ${checked ? "bg-emerald-400" : "bg-muted-foreground/30"}`} />
-                      <span className="flex-1">{c.label}</span>
-                      <span className="text-[9px] opacity-60">{c.network}</span>
-                    </button>
-                  );
-                })}
-              </div>
-              <div className="flex items-center gap-3 mt-3">
-                <Button size="sm" onClick={saveAcceptedCurrencies} disabled={acceptedCurrencies.length === 0}>
-                  Salvar moedas aceitas ({acceptedCurrencies.length})
-                </Button>
-                {acceptedCurrencies.length === 0 && (
-                  <span className="text-[10px] text-amber-400">Nenhuma marcada = todas aparecem para o usuário (não recomendado)</span>
-                )}
-              </div>
-            </>
           )}
         </div>
       </div>
