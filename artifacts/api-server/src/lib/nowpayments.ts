@@ -150,9 +150,10 @@ export async function getAvailableCurrencies(): Promise<{ code: string; label: s
       doge: { label: "Dogecoin (DOGE)", network: "Dogecoin" },
       sol: { label: "Solana (SOL)", network: "Solana" },
     };
-    // Filtrar: is_enabled === true E está no nosso labelMap (moedas conhecidas)
+    // Filtrar: enable === true E available_for_payment === true E está no labelMap
+    // (NowPayments usa "enable" e "available_for_payment", não "is_enabled")
     return all
-      .filter((c) => c.is_enabled === true && labelMap[c.code || c.id])
+      .filter((c) => c.enable === true && c.available_for_payment !== false && labelMap[c.code || c.id])
       .map((c) => {
         const code = c.code || c.id;
         return { code, ...labelMap[code] };
