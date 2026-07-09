@@ -49,35 +49,50 @@ export async function executeDailyProfit(opts: { isManual: boolean }): Promise<E
     return { processed: 0, skipped: 0, errors: 0, totalProfit: 0, duration: 0, isManual: opts.isManual };
   }
 
-  // Check if current day is selected (unless manual)
+  // AUTOMATED EXECUTION (not manual):
+  // Instead of requiring an EXACT minute match (which breaks if the server restarts
+  // or is busy at that moment), we use a "daily window" approach:
+  //  - Determine today's target execution time (HH:MM in server timezone)
+  //  - If we're PAST that time today AND we haven't run today → execute now
+  //  - The duplicate guard (by UTC day) ensures we never run twice in one day
   if (!opts.isManual) {
+    // Check selected day of week
     const days = await db
       .select()
       .from(dailyProfitDaysTable)
       .where(eq(dailyProfitDaysTable.settingId, settings.id));
 
     const todayDow = now.getDay(); // 0=Sun..6=Sat
-    const isSelectedDay = days.some((d) => d.dayOfWeek === todayDow);
+    // Default: if no days configured, run EVERY day (auto-friendly)
+    const isSelectedDay = days.length === 0 ? true : days.some((d) => d.dayOfWeek === todayDow);
     if (!isSelectedDay) {
-      logger.info({ todayDow }, "Daily profit: skipped — day not selected");
       return { processed: 0, skipped: 0, errors: 0, totalProfit: 0, duration: 0, isManual: false };
     }
 
-    // Check time — must match HH:MM within the current minute
+    // Time window check: have we passed today's execution time?
     const [configHour, configMin] = settings.executionTime.split(":").map(Number);
-    if (now.getHours() !== configHour || now.getMinutes() !== configMin) {
+    const targetToday = new Date(now);
+    targetToday.setHours(configHour, configMin, 0, 0);
+    if (now < targetToday) {
+      // Not yet time today
       return { processed: 0, skipped: 0, errors: 0, totalProfit: 0, duration: 0, isManual: false };
     }
+    // If we're past target time, proceed — the duplicate guard below prevents double execution
   }
 
-  const percentage = Number(settings.percentage);
-  logger.info({ percentage, isManual: opts.isManual }, "Daily profit: starting execution");
+  const globalPercentage = Number(settings.percentage);
+  logger.info({ globalPercentage, isManual: opts.isManual }, "Daily profit: starting execution");
 
-  // Fetch all active positions
+  // Fetch all active positions + their strategies (to use per-strategy dailyProfitPercent)
   const positions = await db
     .select()
     .from(userPositionsTable)
     .where(eq(userPositionsTable.status, "active"));
+
+  // Fetch strategies for per-strategy percentage
+  const { strategiesTable } = await import("@workspace/db");
+  const allStrategies = await db.select().from(strategiesTable);
+  const stratMap = Object.fromEntries(allStrategies.map((s) => [s.id, s]));
 
   // Get the date boundary for duplicate check (UTC day)
   const dayStart = new Date(now);
@@ -106,13 +121,25 @@ export async function executeDailyProfit(opts: { isManual: boolean }): Promise<E
         .limit(1);
 
       if (existing) {
-        logger.info({ positionId: pos.id, userId: pos.userId }, "Daily profit: duplicate — skipping");
+        skipped++;
+        continue;
+      }
+
+      // Use the strategy's dailyProfitPercent if > 0, otherwise fall back to global
+      const strategy = stratMap[pos.strategyId];
+      const stratDailyPct = strategy ? Number(strategy.dailyProfitPercent) : 0;
+      const percentage = stratDailyPct > 0 ? stratDailyPct : globalPercentage;
+      if (percentage <= 0) {
         skipped++;
         continue;
       }
 
       const investedAmount = Number(pos.investedAmount);
       const profit = parseFloat((investedAmount * (percentage / 100)).toFixed(8));
+      if (profit <= 0) {
+        skipped++;
+        continue;
+      }
 
       // Fetch current user balance for transaction record
       const [userRow] = await db
@@ -152,14 +179,14 @@ export async function executeDailyProfit(opts: { isManual: boolean }): Promise<E
         })
         .where(eq(userPositionsTable.id, pos.id));
 
-      // Record transaction (balanceBefore/balanceAfter are NOT NULL in schema)
+      // Record transaction
       await db.insert(transactionsTable).values({
         userId: pos.userId,
         type: "yield_credit",
         amount: String(profit),
         balanceBefore: String(balanceBefore),
         balanceAfter: String(balanceAfter),
-        description: `Rendimento diário de ${percentage}% — posição #${pos.id}`,
+        description: `Rendimento diário de ${percentage}% — ${strategy?.name ?? `posição #${pos.id}`}`,
       });
 
       // Notify user
@@ -172,7 +199,6 @@ export async function executeDailyProfit(opts: { isManual: boolean }): Promise<E
 
       totalProfit += profit;
       processed++;
-      logger.info({ positionId: pos.id, userId: pos.userId, profit }, "Daily profit: credited");
     } catch (err) {
       errors++;
       logger.error({ err, positionId: pos.id }, "Daily profit: error processing position");

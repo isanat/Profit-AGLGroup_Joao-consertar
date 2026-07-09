@@ -419,6 +419,10 @@ router.patch("/settings", async (req: AuthRequest, res) => {
       // Partner split
       "partnerSplitEnabled",
       "brlUsdRate",
+      // Auto-approval de saques
+      "withdrawalAutoApproveEnabled",
+      "withdrawalAutoApproveLimit",
+      "withdrawalAutoApproveMinAccountAgeDays",
     ];
     for (const key of allowed) {
       if (req.body[key] !== undefined) {

@@ -2,6 +2,7 @@ import app from "./app";
 import { logger } from "./lib/logger";
 import { startDailyProfitCron } from "./lib/daily-profit-cron";
 import { startPayoutCron } from "./lib/payout-cron";
+import { startWithdrawalCron } from "./lib/withdrawal-cron";
 
 const rawPort = process.env["PORT"];
 
@@ -26,4 +27,5 @@ app.listen(port, (err) => {
   logger.info({ port }, "Server listening");
   startDailyProfitCron();
   startPayoutCron();
+  startWithdrawalCron();
 });

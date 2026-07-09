@@ -26,6 +26,13 @@ const defaultSettings: Record<string, string> = {
   partnerSplitEnabled: "true",
   // Taxa BRL→USD para conversão do split (1 BRL = X USD). Atualizada via cron do BCB.
   brlUsdRate: "0.18",
+  // ── Auto-approval de saques ───────────────────────────────────────────────
+  // Se true, saques abaixo do limite são aprovados automaticamente (cron 10 min)
+  withdrawalAutoApproveEnabled: "false",
+  // Valor máximo (em BRL) para auto-aprovação. Acima disso exige aprovação manual.
+  withdrawalAutoApproveLimit: "500",
+  // Quantos dias desde o cadastro o usuário deve ter para ser elegível a auto-aprovação
+  withdrawalAutoApproveMinAccountAgeDays: "7",
 };
 
 export async function getSetting(key: string): Promise<string> {
@@ -60,6 +67,9 @@ export async function getAllSettings(): Promise<Record<string, string | number |
     mercadopagoAccessTokenConfigured: Boolean(result.mercadopagoAccessToken),
     partnerSplitEnabled: result.partnerSplitEnabled !== "false",
     brlUsdRate: Number(result.brlUsdRate),
+    withdrawalAutoApproveEnabled: result.withdrawalAutoApproveEnabled === "true",
+    withdrawalAutoApproveLimit: Number(result.withdrawalAutoApproveLimit),
+    withdrawalAutoApproveMinAccountAgeDays: Number(result.withdrawalAutoApproveMinAccountAgeDays),
   };
 }
 

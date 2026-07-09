@@ -6,6 +6,8 @@ import {
   platformWalletsTable,
   settingsTable,
   notificationsTable,
+  dailyProfitSettingsTable,
+  dailyProfitDaysTable,
 } from "@workspace/db";
 import bcrypt from "bcryptjs";
 import { eq } from "drizzle-orm";
@@ -75,6 +77,7 @@ async function seed() {
       maxDrawdown: "22.5",
       totalReturnPct: "187.4",
       monthlyReturnPct: "8.2",
+      dailyProfitPercent: "0.27", // ~8.2% / 30 days
       status: "active" as const,
       startDate: "2023-01-15",
     },
@@ -91,6 +94,7 @@ async function seed() {
       maxDrawdown: "8.3",
       totalReturnPct: "48.75",
       monthlyReturnPct: "2.1",
+      dailyProfitPercent: "0.07", // ~2.1% / 30 days
       status: "active" as const,
       startDate: "2022-06-01",
     },
@@ -107,6 +111,7 @@ async function seed() {
       maxDrawdown: "1.2",
       totalReturnPct: "12.30",
       monthlyReturnPct: "0.92",
+      dailyProfitPercent: "0.03", // ~0.92% / 30 days
       status: "active" as const,
       startDate: "2021-03-01",
     },
@@ -123,6 +128,7 @@ async function seed() {
       maxDrawdown: "31.5",
       totalReturnPct: "134.8",
       monthlyReturnPct: "5.6",
+      dailyProfitPercent: "0.19", // ~5.6% / 30 days
       status: "active" as const,
       startDate: "2022-01-10",
     },
@@ -139,6 +145,7 @@ async function seed() {
       maxDrawdown: "5.8",
       totalReturnPct: "78.5",
       monthlyReturnPct: "3.4",
+      dailyProfitPercent: "0.11", // ~3.4% / 30 days
       status: "active" as const,
       startDate: "2022-09-15",
     },
@@ -155,6 +162,7 @@ async function seed() {
       maxDrawdown: "0",
       totalReturnPct: "0",
       monthlyReturnPct: "0",
+      dailyProfitPercent: "0.15",
       status: "paused" as const,
       startDate: "2024-01-01",
     },
@@ -162,6 +170,12 @@ async function seed() {
 
   for (const strat of strategies) {
     const [existing] = await db.select().from(strategiesTable).where(eq(strategiesTable.name, strat.name));
+    // Update dailyProfitPercent for existing strategies if it's 0 (backfill)
+    if (existing && Number(existing.dailyProfitPercent) === 0 && strat.dailyProfitPercent) {
+      await db.update(strategiesTable).set({ dailyProfitPercent: strat.dailyProfitPercent })
+        .where(eq(strategiesTable.id, existing.id));
+      console.log(`✅ Strategy dailyProfitPercent updated: ${strat.name} = ${strat.dailyProfitPercent}%`);
+    }
     if (!existing) {
       const [s] = await db.insert(strategiesTable).values(strat).returning();
       // Seed 12 months of performance history
@@ -229,6 +243,10 @@ async function seed() {
     { key: "mercadopagoBaseUrl", value: "https://api.mercadopago.com/v1" },
     { key: "partnerSplitEnabled", value: "true" },
     { key: "brlUsdRate", value: "0.18" },
+    // Auto-approval de saques (off by default — admin habilita quando quiser)
+    { key: "withdrawalAutoApproveEnabled", value: "false" },
+    { key: "withdrawalAutoApproveLimit", value: "500" },
+    { key: "withdrawalAutoApproveMinAccountAgeDays", value: "7" },
   ];
 
   for (const s of defaultSettings) {
@@ -239,7 +257,32 @@ async function seed() {
     }
   }
 
-  // 6. Welcome notification for demo user
+  // 6. Configure daily profit to run automatically every day at 18:00 (1% default)
+  const [existingDpSettings] = await db.select().from(dailyProfitSettingsTable).limit(1);
+  if (!existingDpSettings) {
+    const [dpSettings] = await db.insert(dailyProfitSettingsTable).values({
+      percentage: "1",
+      executionTime: "18:00",
+      active: true,
+    }).returning();
+    // Enable all 7 days of the week (0=Sun..6=Sat) so it runs every day
+    for (let dow = 0; dow <= 6; dow++) {
+      await db.insert(dailyProfitDaysTable).values({ settingId: dpSettings.id, dayOfWeek: dow });
+    }
+    console.log("✅ Daily profit settings created (1% daily at 18:00, all days)");
+  } else {
+    // Ensure at least some days are configured — if none, add all 7
+    const days = await db.select().from(dailyProfitDaysTable)
+      .where(eq(dailyProfitDaysTable.settingId, existingDpSettings.id));
+    if (days.length === 0) {
+      for (let dow = 0; dow <= 6; dow++) {
+        await db.insert(dailyProfitDaysTable).values({ settingId: existingDpSettings.id, dayOfWeek: dow });
+      }
+      console.log("✅ Daily profit: added all days (was empty)");
+    }
+  }
+
+  // 7. Welcome notification for demo user
   const [existingNotif] = await db.select().from(notificationsTable).where(eq(notificationsTable.userId, demoUser.id));
   if (!existingNotif) {
     await db.insert(notificationsTable).values({
