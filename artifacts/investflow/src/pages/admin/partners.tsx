@@ -40,6 +40,10 @@ const BLANK = {
 };
 
 export default function AdminPartners() {
+  return <PartnersContent embedded />;
+}
+
+export function PartnersContent({ embedded = false }: { embedded?: boolean }) {
   const [partners, setPartners] = useState<Partner[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -163,14 +167,21 @@ export default function AdminPartners() {
   if (loading) return <div className="flex items-center justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2"><Handshake className="h-6 w-6" /> Sócios & Split</h1>
-          <p className="text-sm text-muted-foreground mt-1">Auto-payout em USDT via NowPayments quando o acumulado atinge o mínimo.</p>
+    <div className="space-y-6">
+      {!embedded && (
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold flex items-center gap-2"><Handshake className="h-6 w-6" /> Sócios & Split</h1>
+            <p className="text-sm text-muted-foreground mt-1">Auto-payout em USDT via NowPayments quando o acumulado atinge o mínimo.</p>
+          </div>
+          <Button onClick={openCreate}><Plus className="h-4 w-4 mr-2" /> Novo Sócio</Button>
         </div>
-        <Button onClick={openCreate}><Plus className="h-4 w-4 mr-2" /> Novo Sócio</Button>
-      </div>
+      )}
+      {embedded && (
+        <div className="flex items-center justify-end">
+          <Button onClick={openCreate}><Plus className="h-4 w-4 mr-2" /> Novo Sócio</Button>
+        </div>
+      )}
 
       {awaitingPayouts.length > 0 && (
         <div className="p-4 rounded-lg" style={{ background: "rgba(245,158,11,0.1)", border: "1px solid rgba(245,158,11,0.3)" }}>

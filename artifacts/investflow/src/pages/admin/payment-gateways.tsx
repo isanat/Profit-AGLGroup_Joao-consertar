@@ -15,6 +15,10 @@ interface GatewayConfig {
 const fmtBRL = (v: number) => `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 export default function AdminPaymentGateways() {
+  return <PaymentGatewaysContent embedded />;
+}
+
+export function PaymentGatewaysContent({ embedded = false }: { embedded?: boolean }) {
   const [config, setConfig] = useState<GatewayConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -92,13 +96,15 @@ export default function AdminPaymentGateways() {
   }
 
   return (
-    <div className="space-y-6 max-w-3xl mx-auto">
-      <div>
-        <h1 className="text-2xl font-bold flex items-center gap-2"><CreditCard className="h-6 w-6" /> Gateways de Pagamento</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Configure NowPayments (cripto) e Mercado Pago (PIX). As confirmações são automáticas via webhook.
-        </p>
-      </div>
+    <div className="space-y-6">
+      {!embedded && (
+        <div>
+          <h1 className="text-2xl font-bold flex items-center gap-2"><CreditCard className="h-6 w-6" /> Gateways de Pagamento</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Configure NowPayments (cripto) e Mercado Pago (PIX). As confirmações são automáticas via webhook.
+          </p>
+        </div>
+      )}
 
       {/* ─── NowPayments ─── */}
       <div style={{ background: "#111827", border: "1px solid rgba(245,158,11,0.2)", borderRadius: "16px", padding: "24px" }}>
