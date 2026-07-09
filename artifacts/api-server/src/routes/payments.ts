@@ -23,6 +23,18 @@ import { processConfirmedInvoice, processPayoutWebhook, triggerAutoPayout } from
 
 const router = Router();
 
+// Converte timestamp do NowPayments (segundos ou ms) para Date de forma segura.
+// NowPayments às vezes retorna null, string, ou segundos/ms — normaliza e valida.
+function safeDate(ts: any): Date | null {
+  if (!ts) return null;
+  let n = Number(ts);
+  if (isNaN(n)) return null;
+  // Se for em segundos (< 10^11), converter para ms
+  if (n < 1e11) n = n * 1000;
+  const d = new Date(n);
+  return isNaN(d.getTime()) ? null : d;
+}
+
 // ─── GET /payments/config — what gateways are available ───────────────────────
 router.get("/config", requireAuth, async (req: AuthRequest, res) => {
   try {
@@ -113,11 +125,12 @@ router.post("/create", requireAuth, async (req: AuthRequest, res) => {
           payCurrency: npPayment.pay_currency,
           payAddress: npPayment.pay_address,
           payAmount: String(npPayment.pay_amount),
-          expiresAt: npPayment.expiration_estimate_date ? new Date(npPayment.expiration_estimate_date * 1000) : null,
+          expiresAt: npPayment.expiration_estimate_date ? safeDate(npPayment.expiration_estimate_date) : null,
           metadata: npPayment,
         }).where(eq(paymentInvoicesTable.id, invoice.id));
 
         await auditLog({ userId: req.userId!, action: "create_payment_invoice", entityType: "payment_invoice", entityId: invoice.id, req });
+        const safeExpiresAt = npPayment.expiration_estimate_date ? safeDate(npPayment.expiration_estimate_date) : null;
         res.status(201).json(formatInvoice({
           ...invoice,
           providerInvoiceId: String(npPayment.payment_id),
@@ -125,7 +138,7 @@ router.post("/create", requireAuth, async (req: AuthRequest, res) => {
           payCurrency: npPayment.pay_currency,
           payAddress: npPayment.pay_address,
           payAmount: npPayment.pay_amount,
-          expiresAt: npPayment.expiration_estimate_date ? new Date(npPayment.expiration_estimate_date * 1000) : null,
+          expiresAt: safeExpiresAt,
         }));
         return;
       }
