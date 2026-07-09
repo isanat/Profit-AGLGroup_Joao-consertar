@@ -57,7 +57,7 @@ export default function AdminWithdrawals() {
       <div className="flex justify-between items-end">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Saques</h2>
-          <p className="text-muted-foreground">Gerencie solicitações de saque dos usuários.</p>
+          <p className="text-muted-foreground">Solicitações de saque. Saques de baixo valor são aprovados automaticamente (configurável).</p>
         </div>
         <div className="w-[200px]">
           <Select value={statusFilter} onValueChange={(val) => { setStatusFilter(val); setPage(1); }}>
@@ -72,6 +72,22 @@ export default function AdminWithdrawals() {
               <SelectItem value="rejected">Recusado</SelectItem>
             </SelectContent>
           </Select>
+        </div>
+      </div>
+
+      {/* Automation banner */}
+      <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-4 flex items-start gap-3">
+        <div className="w-10 h-10 rounded-full bg-emerald-500/15 flex items-center justify-center flex-shrink-0">
+          <svg className="h-5 w-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+        </div>
+        <div className="flex-1">
+          <p className="text-sm font-semibold text-emerald-400">Aprovação automática (configurável)</p>
+          <p className="text-xs text-muted-foreground mt-1">
+            Um cron verifica a cada 10 minutos os saques pendentes. Saques abaixo do limite configurado
+            (em Configurações) de usuários ativos com conta antiga são aprovados automaticamente.
+            Saques acima do limite ou de contas novas aparecem aqui para revisão manual.
+            Você pode ativar/desativar e ajustar o limite em <strong>Configurações</strong>.
+          </p>
         </div>
       </div>
 

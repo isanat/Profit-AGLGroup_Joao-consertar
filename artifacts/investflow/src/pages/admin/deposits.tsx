@@ -29,7 +29,7 @@ const METHOD_LABELS: Record<string, string> = {
 
 export default function AdminDeposits() {
   const [page, setPage] = useState(1);
-  const [statusFilter, setStatusFilter] = useState("pending");
+  const [statusFilter, setStatusFilter] = useState("confirmed");
   const queryClient = useQueryClient();
 
   const { data: depositsData, isLoading } = useAdminListDeposits({
@@ -94,7 +94,7 @@ export default function AdminDeposits() {
       <div className="flex justify-between items-end">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Depósitos</h2>
-          <p className="text-muted-foreground">Gerencie e aprove solicitações de depósito. O bônus de indicação é creditado automaticamente ao aprovar.</p>
+          <p className="text-muted-foreground">Histórico de depósitos. Os pagamentos via gateway (NowPayments/Mercado Pago) são confirmados automaticamente por webhook.</p>
         </div>
         <div className="w-[200px]">
           <Select value={statusFilter} onValueChange={(val) => { setStatusFilter(val); setPage(1); }}>
@@ -103,12 +103,28 @@ export default function AdminDeposits() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos</SelectItem>
-              <SelectItem value="pending">Pendente</SelectItem>
+              <SelectItem value="pending">Pendente (manual)</SelectItem>
               <SelectItem value="confirmed">Confirmado</SelectItem>
               <SelectItem value="failed">Falhou</SelectItem>
               <SelectItem value="cancelled">Cancelado</SelectItem>
             </SelectContent>
           </Select>
+        </div>
+      </div>
+
+      {/* Automation banner */}
+      <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-4 flex items-start gap-3">
+        <div className="w-10 h-10 rounded-full bg-emerald-500/15 flex items-center justify-center flex-shrink-0">
+          <svg className="h-5 w-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+        </div>
+        <div className="flex-1">
+          <p className="text-sm font-semibold text-emerald-400">Confirmação automática ativa</p>
+          <p className="text-xs text-muted-foreground mt-1">
+            Depósitos via NowPayments (cripto) e Mercado Pago (PIX) são confirmados automaticamente
+            quando o webhook do gateway notifica o pagamento. O saldo é creditado, a comissão de
+            indicação é processada e o split de sócios é executado — tudo sem intervenção manual.
+            A ação "Revisar" abaixo é apenas um fallback para casos excepcionais (ex.: webhook que falhou).
+          </p>
         </div>
       </div>
 
@@ -166,8 +182,8 @@ export default function AdminDeposits() {
                       <TableCell>{statusBadge(d.status)}</TableCell>
                       <TableCell className="text-right">
                         {d.status === "pending" && (
-                          <Button size="sm" onClick={() => openReview(d)}>
-                            Revisar
+                          <Button size="sm" variant="outline" onClick={() => openReview(d)}>
+                            Confirmar (fallback)
                           </Button>
                         )}
                       </TableCell>

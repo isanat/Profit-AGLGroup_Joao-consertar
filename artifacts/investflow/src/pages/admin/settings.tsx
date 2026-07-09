@@ -139,6 +139,49 @@ export default function AdminSettings() {
             ))}
           </div>
 
+          {/* Auto-approval de saques */}
+          <div className="space-y-4 pt-4 border-t border-border">
+            <div>
+              <h3 className="font-medium text-sm">Aprovação Automática de Saques</h3>
+              <p className="text-xs text-muted-foreground mt-1">Cron a cada 10 min aprova saques de baixo valor automaticamente (anti-fraude: acima do limite exige manual).</p>
+            </div>
+
+            <div className="flex items-center justify-between p-3 border rounded-md">
+              <div>
+                <p className="font-medium">Habilitar auto-aprovação</p>
+                <p className="text-sm text-muted-foreground">Saques elegíveis são aprovados sem intervenção manual</p>
+              </div>
+              <input
+                type="checkbox"
+                checked={formData.withdrawalAutoApproveEnabled ?? false}
+                onChange={(e) => field("withdrawalAutoApproveEnabled", e.target.checked)}
+                className="w-5 h-5 rounded border-gray-300"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Limite para auto-aprovação (R$)</label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={formData.withdrawalAutoApproveLimit ?? 500}
+                  onChange={(e) => field("withdrawalAutoApproveLimit", parseFloat(e.target.value) || 0)}
+                />
+                <p className="text-xs text-muted-foreground">Saques acima deste valor exigem aprovação manual</p>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Idade mínima da conta (dias)</label>
+                <Input
+                  type="number"
+                  value={formData.withdrawalAutoApproveMinAccountAgeDays ?? 7}
+                  onChange={(e) => field("withdrawalAutoApproveMinAccountAgeDays", parseInt(e.target.value) || 0)}
+                />
+                <p className="text-xs text-muted-foreground">Usuários mais novos não são elegíveis (anti-fraude)</p>
+              </div>
+            </div>
+          </div>
+
           <Button onClick={handleSave} disabled={updateSettings.isPending} className="w-full">
             {updateSettings.isPending ? "Salvando..." : "Salvar Configurações"}
           </Button>

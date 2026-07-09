@@ -22,18 +22,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { Play, Save, History, TrendingUp, Users, DollarSign, Clock } from "lucide-react";
+import { Save, History, TrendingUp, Users, DollarSign, Clock, Zap, Calendar } from "lucide-react";
 
 const DAYS = [
   { value: 0, label: "Domingo" },
@@ -99,22 +88,24 @@ export default function AdminDailyProfit() {
     }
   };
 
+  // Manual trigger — kept ONLY as an emergency/test override.
+  // The cron runs this automatically every day at the configured time.
   const handleExecute = async () => {
     try {
       const result = await executeProfit.mutateAsync(undefined as any);
       setLastResult(result);
       if (result.processed > 0) {
         toast.success(
-          `Distribuição concluída: ${result.processed} posições processadas, R$ ${result.totalProfit.toFixed(2)} distribuídos`,
+          `Execução manual concluída: ${result.processed} posições, R$ ${result.totalProfit.toFixed(2)} distribuídos`,
         );
       } else if (result.skipped > 0) {
         toast.info(`Nenhuma posição nova: ${result.skipped} já receberam lucro hoje`);
       } else {
-        toast.warning("Nenhuma posição ativa encontrada para distribuir");
+        toast.warning("Nenhuma posição ativa encontrada");
       }
       queryClient.invalidateQueries({ queryKey: getAdminGetDailyProfitHistoryQueryKey() });
     } catch (err: any) {
-      toast.error(err?.data?.error || "Erro ao executar distribuição");
+      toast.error(err?.data?.error || "Erro ao executar");
     }
   };
 
@@ -126,17 +117,39 @@ export default function AdminDailyProfit() {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">Distribuir Lucro Diário</h2>
+          <h2 className="text-3xl font-bold tracking-tight">Rendimento Diário</h2>
           <p className="text-muted-foreground">
-            Configure e execute a distribuição automática de rendimentos.
+            Automação de rendimento — executa sozinho todo dia no horário configurado.
           </p>
         </div>
         <Badge
           variant={active ? "default" : "secondary"}
-          className="text-sm px-3 py-1"
+          className="text-sm px-3 py-1 flex items-center gap-1.5"
         >
-          {active ? "Ativo" : "Inativo"}
+          <Zap className="h-3 w-3" />
+          {active ? "Automático" : "Pausado"}
         </Badge>
+      </div>
+
+      {/* Automation status banner */}
+      <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-4 flex items-start gap-3">
+        <div className="w-10 h-10 rounded-full bg-emerald-500/15 flex items-center justify-center flex-shrink-0">
+          <Zap className="h-5 w-5 text-emerald-400" />
+        </div>
+        <div className="flex-1">
+          <p className="text-sm font-semibold text-emerald-400">Rendimento 100% automático</p>
+          <p className="text-xs text-muted-foreground mt-1">
+            O sistema credita o rendimento diário a todas as posições ativas, todos os dias,
+            no horário configurado ({executionTime || "18:00"}h). Cada estratégia usa seu próprio
+            % diário (definido no cadastro da estratégia) com fallback para o % global abaixo.
+            Não é necessário clicar em nada — o cron verifica a cada minuto e executa quando chega a hora.
+          </p>
+          {selectedDays.length === 7 && (
+            <p className="text-xs text-emerald-400 mt-2 flex items-center gap-1">
+              <Calendar className="h-3 w-3" /> Roda todos os 7 dias da semana
+            </p>
+          )}
+        </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
@@ -145,10 +158,10 @@ export default function AdminDailyProfit() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <TrendingUp className="h-4 w-4 text-emerald-400" />
-              Configurações de Distribuição
+              Configuração
             </CardTitle>
             <CardDescription>
-              Define o percentual e os dias em que o rendimento será creditado.
+              % global (fallback) e horário da execução automática diária.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -161,7 +174,7 @@ export default function AdminDailyProfit() {
                 {/* Percentage */}
                 <div className="space-y-2">
                   <label className="text-sm font-medium">
-                    Percentual diário (%) *
+                    Percentual global diário (%) *
                   </label>
                   <div className="relative">
                     <Input
@@ -177,7 +190,7 @@ export default function AdminDailyProfit() {
                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">%</span>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Mínimo: 0,01% · Máximo: 100%
+                    Usado quando a estratégia não tem % próprio. Cada estratégia pode ter seu % diário.
                   </p>
                   {percentage && !isNaN(parseFloat(percentage)) && (
                     <p className="text-xs text-emerald-400">
@@ -190,13 +203,16 @@ export default function AdminDailyProfit() {
                 <div className="space-y-2">
                   <label className="text-sm font-medium flex items-center gap-2">
                     <Clock className="h-3.5 w-3.5 text-muted-foreground" />
-                    Horário de execução
+                    Horário de execução automática
                   </label>
                   <Input
                     type="time"
                     value={executionTime}
                     onChange={(e) => setExecutionTime(e.target.value)}
                   />
+                  <p className="text-xs text-muted-foreground">
+                    O cron roda a cada minuto e executa quando passa deste horário (janela diária, não minuto exato).
+                  </p>
                 </div>
 
                 {/* Days of week */}
@@ -229,9 +245,9 @@ export default function AdminDailyProfit() {
                 {/* Active toggle */}
                 <div className="flex items-center justify-between p-3 rounded-md border border-border bg-muted/10">
                   <div>
-                    <p className="text-sm font-medium">Status da automação</p>
+                    <p className="text-sm font-medium">Automação ativa</p>
                     <p className="text-xs text-muted-foreground">
-                      Quando inativo, o cron não executa automaticamente.
+                      Quando desativado, o rendimento não é creditado automaticamente.
                     </p>
                   </div>
                   <button
@@ -258,130 +274,71 @@ export default function AdminDailyProfit() {
           </CardContent>
         </Card>
 
-        {/* Manual Execute + Summary */}
+        {/* Status + last execution */}
         <div className="space-y-4">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Play className="h-4 w-4 text-amber-400" />
-                Execução Manual
+                <History className="h-4 w-4 text-muted-foreground" />
+                Última Execução Automática
               </CardTitle>
-              <CardDescription>
-                Executa a distribuição imediatamente, respeitando a proteção contra duplicidade.
-              </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="rounded-md border border-amber-500/20 bg-amber-500/5 p-3">
-                <p className="text-sm text-amber-400 font-medium">Atenção</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  A execução manual usa as mesmas regras do cron automático. Se uma posição já recebeu lucro hoje, ela será ignorada automaticamente.
+            <CardContent>
+              {!historyLoading && history && history.data.length > 0 ? (
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="rounded-md bg-muted/20 p-3">
+                    <p className="text-xs text-muted-foreground">Data</p>
+                    <p className="font-medium text-sm">{new Date(history.data[0].date + "T12:00:00").toLocaleDateString("pt-BR")}</p>
+                  </div>
+                  <div className="rounded-md bg-muted/20 p-3">
+                    <p className="text-xs text-muted-foreground">% aplicado</p>
+                    <p className="font-medium text-sm text-emerald-400">{history.data[0].percentage}%</p>
+                  </div>
+                  <div className="rounded-md bg-emerald-500/5 border border-emerald-500/20 p-3">
+                    <p className="text-xs text-muted-foreground flex items-center gap-1"><Users className="h-3 w-3" />Posições</p>
+                    <p className="font-bold text-lg text-emerald-400">{history.data[0].usersCount}</p>
+                  </div>
+                  <div className="rounded-md bg-amber-500/5 border border-amber-500/20 p-3">
+                    <p className="text-xs text-muted-foreground flex items-center gap-1"><DollarSign className="h-3 w-3" />Total</p>
+                    <p className="font-bold text-lg text-amber-400">R$ {fmtBRL(history.data[0].totalProfit)}</p>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  {historyLoading ? "Carregando..." : "Nenhuma execução registrada ainda. O cron rodará automaticamente no horário configurado."}
                 </p>
-              </div>
-
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className="w-full border-amber-500/40 text-amber-400 hover:bg-amber-500/10"
-                    disabled={executeProfit.isPending}
-                  >
-                    <Play className="mr-2 h-4 w-4" />
-                    {executeProfit.isPending ? "Executando..." : "Executar Agora"}
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Confirmar distribuição</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Isso irá distribuir rendimentos para todas as posições ativas que ainda não receberam lucro hoje. O percentual atual de <strong>{percentage || settings?.percentage}%</strong> será aplicado.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleExecute}>
-                      Confirmar Execução
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-
-              <div className="text-xs text-muted-foreground space-y-1 pt-2">
-                <p><span className="text-foreground font-medium">Fórmula:</span> lucro = valor_investido × (percentual / 100)</p>
-                <p className="text-emerald-400">Investimento R$ 100 × 1,5% = R$ 1,50 / dia</p>
-              </div>
+              )}
             </CardContent>
           </Card>
 
-          {/* Execution result */}
-          {lastResult !== null && (
-            <Card className={`border ${lastResult.processed > 0 ? "border-emerald-500/30" : "border-amber-500/30"}`}>
-              <CardHeader className="pb-3">
-                <CardTitle className={`text-sm font-semibold flex items-center gap-2 ${lastResult.processed > 0 ? "text-emerald-400" : "text-amber-400"}`}>
-                  <Play className="h-3.5 w-3.5" />
-                  Resultado da Última Execução
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="rounded-md bg-emerald-500/5 border border-emerald-500/20 p-3">
-                    <p className="text-xs text-muted-foreground flex items-center gap-1"><Users className="h-3 w-3" />Posições Processadas</p>
-                    <p className="font-bold text-lg text-emerald-400">{lastResult.processed}</p>
-                  </div>
-                  <div className="rounded-md bg-muted/20 p-3">
-                    <p className="text-xs text-muted-foreground">Já tinham recebido</p>
-                    <p className="font-bold text-lg text-muted-foreground">{lastResult.skipped}</p>
-                  </div>
-                  <div className="rounded-md bg-amber-500/5 border border-amber-500/20 p-3">
-                    <p className="text-xs text-muted-foreground flex items-center gap-1"><DollarSign className="h-3 w-3" />Total Distribuído</p>
-                    <p className="font-bold text-lg text-amber-400">R$ {fmtBRL(lastResult.totalProfit)}</p>
-                  </div>
-                  <div className="rounded-md bg-muted/20 p-3">
-                    <p className="text-xs text-muted-foreground flex items-center gap-1"><Clock className="h-3 w-3" />Tempo</p>
-                    <p className="font-bold text-lg">{lastResult.duration}ms</p>
-                  </div>
+          {/* Emergency manual trigger (collapsed/minimal) */}
+          <Card className="border-dashed">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <Zap className="h-3.5 w-3.5" />
+                Execução de Teste (opcional)
+              </CardTitle>
+              <CardDescription className="text-xs">
+                Apenas para validação. O sistema já roda sozinho — não é necessário usar.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full text-xs"
+                onClick={handleExecute}
+                disabled={executeProfit.isPending}
+              >
+                {executeProfit.isPending ? "Executando..." : "Executar agora (teste)"}
+              </Button>
+              {lastResult !== null && (
+                <div className="mt-2 text-xs text-muted-foreground">
+                  {lastResult.processed} processadas · R$ {fmtBRL(lastResult.totalProfit)} distribuídos · {lastResult.duration}ms
                 </div>
-                {lastResult.errors > 0 && (
-                  <div className="mt-3 rounded-md border border-red-500/30 bg-red-500/5 p-3">
-                    <p className="text-xs text-red-400 font-medium">{lastResult.errors} erro(s) durante a execução. Verifique os logs do servidor.</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Quick stats from history */}
-          {!historyLoading && history && history.data.length > 0 && (
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Última Execução</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {(() => {
-                  const last = history.data[0];
-                  return (
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="rounded-md bg-muted/20 p-3">
-                        <p className="text-xs text-muted-foreground">Data</p>
-                        <p className="font-medium text-sm">{new Date(last.date).toLocaleDateString("pt-BR")}</p>
-                      </div>
-                      <div className="rounded-md bg-muted/20 p-3">
-                        <p className="text-xs text-muted-foreground">Percentual</p>
-                        <p className="font-medium text-sm text-emerald-400">{last.percentage}%</p>
-                      </div>
-                      <div className="rounded-md bg-muted/20 p-3">
-                        <p className="text-xs text-muted-foreground flex items-center gap-1"><Users className="h-3 w-3" />Posições</p>
-                        <p className="font-medium text-sm">{last.usersCount}</p>
-                      </div>
-                      <div className="rounded-md bg-muted/20 p-3">
-                        <p className="text-xs text-muted-foreground flex items-center gap-1"><DollarSign className="h-3 w-3" />Total</p>
-                        <p className="font-medium text-sm text-amber-400">R$ {fmtBRL(last.totalProfit)}</p>
-                      </div>
-                    </div>
-                  );
-                })()}
-              </CardContent>
-            </Card>
-          )}
+              )}
+            </CardContent>
+          </Card>
         </div>
       </div>
 
@@ -390,7 +347,7 @@ export default function AdminDailyProfit() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <History className="h-4 w-4 text-muted-foreground" />
-            Histórico de Distribuições
+            Histórico de Execuções Automáticas
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -433,7 +390,7 @@ export default function AdminDailyProfit() {
                 {(!history?.data || history.data.length === 0) && (
                   <TableRow>
                     <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
-                      Nenhuma distribuição registrada ainda.
+                      Nenhuma execução registrada ainda. O cron executará automaticamente no horário configurado.
                     </TableCell>
                   </TableRow>
                 )}
