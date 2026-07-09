@@ -161,10 +161,14 @@ export async function getAvailableCurrencies(): Promise<{ code: string; label: s
     };
     // Filtrar: enable === true E available_for_payment === true E está no labelMap
     // (NowPayments usa "enable" e "available_for_payment", não "is_enabled")
+    // Importante: a API retorna codes em MAIÚSCULO (BTC, USDTBSC) — normalizar p/ lowercase
     return all
-      .filter((c) => c.enable === true && c.available_for_payment !== false && labelMap[c.code || c.id])
+      .filter((c) => {
+        const code = String(c.code || c.id || "").toLowerCase();
+        return c.enable === true && c.available_for_payment !== false && labelMap[code];
+      })
       .map((c) => {
-        const code = c.code || c.id;
+        const code = String(c.code || c.id || "").toLowerCase();
         return { code, ...labelMap[code] };
       });
   } catch (err) {
