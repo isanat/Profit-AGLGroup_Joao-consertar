@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -12,6 +13,7 @@ import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { Bitcoin, Wallet, CreditCard } from "lucide-react";
+import { SecurityContent } from "@/pages/security";
 
 const PIX_KEY_TYPES = [
   { value: "cpf", label: "CPF" },
@@ -112,10 +114,17 @@ export default function Profile() {
       <div>
         <h2 className="text-3xl font-bold tracking-tight">Meu Perfil</h2>
         <p className="text-muted-foreground">
-          Gerencie suas informações pessoais e dados de pagamento.
+          Gerencie suas informações pessoais, dados de pagamento e segurança.
         </p>
       </div>
 
+      <Tabs defaultValue="perfil" className="w-full">
+        <TabsList className="grid w-full grid-cols-2 max-w-xs">
+          <TabsTrigger value="perfil">Dados</TabsTrigger>
+          <TabsTrigger value="seguranca">Segurança</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="perfil" className="mt-6">
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         {/* Personal Info */}
         <Card>
@@ -284,6 +293,12 @@ export default function Profile() {
           {updateMe.isPending ? "Salvando..." : "Salvar Alterações"}
         </Button>
       </form>
+        </TabsContent>
+
+        <TabsContent value="seguranca" className="mt-6">
+          <SecurityContent />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

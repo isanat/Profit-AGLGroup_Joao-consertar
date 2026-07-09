@@ -97,13 +97,15 @@ function Router() {
       <Route path="/my-positions" component={() => <ProtectedRoute component={MyPositions} />} />
       <Route path="/strategies" component={() => <ProtectedRoute component={Strategies} />} />
       <Route path="/strategies/:id" component={() => <ProtectedRoute component={StrategyDetail} />} />
-      <Route path="/deposit" component={() => <ProtectedRoute component={Deposit} />} />
-      <Route path="/withdraw" component={() => <ProtectedRoute component={Withdraw} />} />
+      {/* Deposit/Withdraw/Notifications agora são modais (abertos via dashboard/header) */}
+      <Route path="/deposit" component={() => <Redirect to="/dashboard" />} />
+      <Route path="/withdraw" component={() => <Redirect to="/dashboard" />} />
       <Route path="/transactions" component={() => <ProtectedRoute component={Transactions} />} />
       <Route path="/referrals" component={() => <ProtectedRoute component={Referrals} />} />
-      <Route path="/notifications" component={() => <ProtectedRoute component={Notifications} />} />
+      <Route path="/notifications" component={() => <Redirect to="/dashboard" />} />
       <Route path="/profile" component={() => <ProtectedRoute component={Profile} />} />
-      <Route path="/security" component={() => <ProtectedRoute component={Security} />} />
+      {/* Security agora é uma aba dentro de /profile */}
+      <Route path="/security" component={() => <Redirect to="/profile" />} />
       <Route path="/support" component={() => <ProtectedRoute component={Support} />} />
 
       {/* Admin Routes */}

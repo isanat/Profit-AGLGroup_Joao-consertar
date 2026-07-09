@@ -24,9 +24,21 @@ import {
 import { Button } from "@/components/ui/button";
 import { useLogout } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
+import { ModalProvider, useModal } from "@/lib/modal-context";
+import { GlobalModals } from "@/components/global-modals";
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <ModalProvider>
+      <AppLayoutInner>{children}</AppLayoutInner>
+      <GlobalModals />
+    </ModalProvider>
+  );
+}
+
+function AppLayoutInner({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAuth();
+  const { openModal } = useModal();
   const [location] = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const logoutMutation = useLogout();
@@ -45,13 +57,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/my-positions", label: "Minhas Posições", icon: Briefcase },
     { href: "/strategies", label: "Planos", icon: LineChart },
-    { href: "/deposit", label: "Depositar", icon: Wallet },
-    { href: "/withdraw", label: "Sacar", icon: ArrowLeftRight },
     { href: "/transactions", label: "Transações", icon: History },
     { href: "/referrals", label: "Indicações", icon: Users },
-    { href: "/notifications", label: "Notificações", icon: Bell },
     { href: "/profile", label: "Perfil", icon: User },
-    { href: "/security", label: "Segurança", icon: Shield },
     { href: "/support", label: "Suporte", icon: HelpCircle },
   ];
 
@@ -69,10 +77,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   ];
 
   // Bottom nav items (mobile only - most used 4)
-  const bottomNavItems = [
+  // "Depositar" abre modal (modal field) em vez de navegar para /deposit
+  const bottomNavItems: { href: string; label: string; icon: any; modal?: "deposit" | "withdraw" | "notifications" }[] = [
     { href: "/dashboard", label: "Início", icon: LayoutDashboard },
     { href: "/strategies", label: "Planos", icon: LineChart },
-    { href: "/deposit", label: "Depositar", icon: Wallet },
+    { href: "#", label: "Depositar", icon: Wallet, modal: "deposit" },
     { href: "/my-positions", label: "Posições", icon: Briefcase },
   ];
 
@@ -291,11 +300,12 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         >
           <img src="/logo.png" alt="Alliance Group" className="h-9 w-auto" />
           <div className="flex items-center gap-2">
-            <Link href="/notifications">
-              <button className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent">
-                <Bell className="h-5 w-5" />
-              </button>
-            </Link>
+            <button
+              className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent"
+              onClick={() => openModal("notifications")}
+            >
+              <Bell className="h-5 w-5" />
+            </button>
             <button
               className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent"
               onClick={() => setIsMobileMenuOpen(true)}
@@ -327,12 +337,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         >
           {bottomNavItems.map((item) => {
             const active = isActive(item.href);
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="flex-1 flex flex-col items-center justify-center gap-1 py-2 transition-colors"
-              >
+            const inner = (
+              <>
                 <div
                   style={{
                     width: "36px",
@@ -364,6 +370,26 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 >
                   {item.label}
                 </span>
+              </>
+            );
+            if (item.modal) {
+              return (
+                <button
+                  key={item.label}
+                  className="flex-1 flex flex-col items-center justify-center gap-1 py-2 transition-colors"
+                  onClick={() => openModal(item.modal as any)}
+                >
+                  {inner}
+                </button>
+              );
+            }
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="flex-1 flex flex-col items-center justify-center gap-1 py-2 transition-colors"
+              >
+                {inner}
               </Link>
             );
           })}

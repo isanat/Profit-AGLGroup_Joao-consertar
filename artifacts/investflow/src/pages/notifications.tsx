@@ -6,6 +6,10 @@ import { Bell, Check, Info, AlertTriangle, XCircle, CheckCircle2 } from "lucide-
 import { useQueryClient } from "@tanstack/react-query";
 
 export default function Notifications() {
+  return <NotificationsContent />;
+}
+
+export function NotificationsContent() {
   const { data: notifications, isLoading } = useListNotifications();
   const markAllRead = useMarkAllNotificationsRead();
   const markRead = useMarkNotificationRead();

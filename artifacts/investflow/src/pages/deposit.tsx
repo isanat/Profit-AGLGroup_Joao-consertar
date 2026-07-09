@@ -48,6 +48,10 @@ type MethodOption =
   | { kind: "mercadopago"; code: string; label: string };
 
 export default function Deposit() {
+  return <DepositContent />;
+}
+
+export function DepositContent() {
   const [config, setConfig] = useState<PaymentConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedMethod, setSelectedMethod] = useState<MethodOption | null>(null);

@@ -21,6 +21,10 @@ const passwordSchema = z.object({
 });
 
 export default function Security() {
+  return <SecurityContent />;
+}
+
+export function SecurityContent() {
   const { user } = useAuth();
   const changePwd = useChangePassword();
   const enable2fa = useEnable2fa();

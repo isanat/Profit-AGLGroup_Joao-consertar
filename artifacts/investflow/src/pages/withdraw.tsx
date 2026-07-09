@@ -29,6 +29,10 @@ const METHOD_LABELS: Record<string, string> = {
 };
 
 export default function Withdraw() {
+  return <WithdrawContent />;
+}
+
+export function WithdrawContent() {
   const { user } = useAuth();
   const requestWithdrawal = useRequestWithdrawal();
   const [feeInfo, setFeeInfo] = useState<FeeInfo>({ feePercent: 2, minWithdrawal: 10, maxWithdrawal: 100000 });

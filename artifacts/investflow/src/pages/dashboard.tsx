@@ -6,6 +6,7 @@ import {
   ArrowDownLeft, ArrowUpRight, Clock, ChevronRight,
 } from "lucide-react";
 import { Link } from "wouter";
+import { useModal } from "@/lib/modal-context";
 
 const fmtBRL = (v: number) =>
   `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -37,6 +38,7 @@ interface StatCard {
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const { openModal } = useModal();
   const { data: summary, isLoading } = useGetDashboardSummary();
   const { data: activity } = useGetRecentActivity();
 
@@ -268,11 +270,14 @@ export default function Dashboard() {
       {/* ── Quick actions ── */}
       <div className="grid grid-cols-3 gap-2">
         {[
-          { href: "/deposit", label: "Depositar", icon: ArrowDownLeft, color: "#10b981" },
-          { href: "/withdraw", label: "Sacar", icon: ArrowUpRight, color: "#ef4444" },
-          { href: "/strategies", label: "Investir", icon: TrendingUp, color: "#f59e0b" },
-        ].map(action => (
-          <Link key={action.href} href={action.href}>
+          { href: "/deposit", label: "Depositar", icon: ArrowDownLeft, color: "#10b981", modal: "deposit" as const },
+          { href: "/withdraw", label: "Sacar", icon: ArrowUpRight, color: "#ef4444", modal: "withdraw" as const },
+          { href: "/strategies", label: "Investir", icon: TrendingUp, color: "#f59e0b", modal: null as any },
+        ].map(action => {
+          const handleAction = action.modal
+            ? () => openModal(action.modal)
+            : undefined;
+          const content = (
             <div
               style={{
                 background: "#111827",
@@ -301,8 +306,17 @@ export default function Dashboard() {
               </div>
               <p style={{ fontSize: "12px", fontWeight: 600, color: "#94a3b8" }}>{action.label}</p>
             </div>
-          </Link>
-        ))}
+          );
+          return action.modal ? (
+            <button key={action.label} onClick={handleAction} className="block w-full text-left">
+              {content}
+            </button>
+          ) : (
+            <Link key={action.href} href={action.href}>
+              {content}
+            </Link>
+          );
+        })}
       </div>
 
       {/* ── Stats grid 2 colunas ── */}
