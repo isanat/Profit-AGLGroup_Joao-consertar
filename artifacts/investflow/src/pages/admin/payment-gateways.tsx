@@ -91,6 +91,21 @@ export function PaymentGatewaysContent({ embedded = false }: { embedded?: boolea
     toast.success("URL do webhook copiada");
   };
 
+  // Verificação de capacidade de payout (saldo + 2FA)
+  const [payoutStatus, setPayoutStatus] = useState<any>(null);
+  const [checkingPayout, setCheckingPayout] = useState(false);
+  const checkPayoutStatus = async () => {
+    setCheckingPayout(true);
+    try {
+      const result = await apiGet<any>("/api/admin/nowpayments/payout-status");
+      setPayoutStatus(result);
+    } catch (e: any) {
+      setPayoutStatus({ payoutsEnabled: false, reason: e?.message || "Erro ao verificar" });
+    } finally {
+      setCheckingPayout(false);
+    }
+  };
+
   if (loading) {
     return <div className="flex items-center justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
   }
@@ -143,6 +158,43 @@ export function PaymentGatewaysContent({ embedded = false }: { embedded?: boolea
             <Button size="sm" variant="ghost" onClick={() => copyWebhookUrl("/api/payments/webhook/nowpayments")}><Copy className="h-3 w-3 mr-1" /> Copiar</Button>
           </div>
           <p className="text-xs text-muted-foreground">Configure esta URL em NowPayments → Account Settings → IPN callback URL.</p>
+        </div>
+
+        {/* Verificação de payout (2FA + email) */}
+        <div className="mt-4 p-3 rounded-lg" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)" }}>
+          <div className="flex items-center justify-between mb-2">
+            <div>
+              <p className="text-xs font-bold">Payouts (pagar sócios / saques cripto)</p>
+              <p className="text-[10px] text-muted-foreground">NowPayments exige email + 2FA configurados na conta para permitir payouts via API.</p>
+            </div>
+            <Button size="sm" variant="outline" onClick={checkPayoutStatus} disabled={checkingPayout}>
+              {checkingPayout ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : null}
+              {checkingPayout ? "Verificando..." : "Verificar"}
+            </Button>
+          </div>
+          {payoutStatus && (
+            <div className="text-xs">
+              {payoutStatus.payoutsEnabled ? (
+                <div>
+                  <p className="text-emerald-400 font-medium mb-1">✓ Payouts habilitados</p>
+                  {payoutStatus.balances && Object.keys(payoutStatus.balances).length > 0 && (
+                    <div className="space-y-0.5">
+                      <p className="text-muted-foreground">Saldos disponíveis:</p>
+                      {Object.entries(payoutStatus.balances).map(([cur, amt]: [string, any]) => (
+                        <p key={cur} className="font-mono">{cur}: {Number(amt).toFixed(8)}</p>
+                      ))}
+                    </div>
+                  )}
+                  <p className="text-[10px] text-amber-400 mt-2">⚠ Cada payout via API gera um código por email — confirme na aba Sócios & Split (seção 2FA).</p>
+                </div>
+              ) : (
+                <p className="text-red-400 font-medium">✗ {payoutStatus.reason || "Payouts não habilitados"}</p>
+              )}
+            </div>
+          )}
+          {!payoutStatus && (
+            <p className="text-[10px] text-muted-foreground">Clique em "Verificar" para checar se a conta está habilitada para payouts e ver os saldos.</p>
+          )}
         </div>
       </div>
 

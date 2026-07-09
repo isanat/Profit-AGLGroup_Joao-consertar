@@ -526,6 +526,45 @@ router.get("/payment-gateways", async (req: AuthRequest, res) => {
   }
 });
 
+// GET /admin/nowpayments/payout-status — verifica saldo e capacidade de payout
+// NowPayments exige email + 2FA configurados na conta para permitir payouts via API.
+router.get("/nowpayments/payout-status", async (req: AuthRequest, res) => {
+  try {
+    const { getSecretSettings } = await import("../lib/settings");
+    const settings = await getSecretSettings();
+    if (settings.nowpaymentsEnabled !== "true" || !settings.nowpaymentsApiKey) {
+      res.json({ payoutsEnabled: false, reason: "NowPayments não configurado", balances: {} });
+      return;
+    }
+    const { getBalance } = await import("../lib/nowpayments");
+    try {
+      const balances = await getBalance();
+      // Se conseguiu ler o saldo, a API key tem permissão de payout.
+      // (NowPayments exige email + 2FA na conta para payouts; sem isso, /balance retorna erro)
+      const totalUsd = Object.values(balances).reduce((a, b) => a + b, 0);
+      res.json({
+        payoutsEnabled: true,
+        balances,
+        totalBalance: totalUsd,
+        note: "NowPayments exige email + 2FA configurados na conta para payouts. Se os saldos aparecem aqui, a conta está habilitada. Cada payout criado via API gera um código de verificação enviado por email — confirme na aba Sócios & Split.",
+      });
+    } catch (err: any) {
+      const msg = String(err?.message || err);
+      const is2fa = /2fa|two.factor|verification|forbidden|403|email/i.test(msg);
+      res.json({
+        payoutsEnabled: false,
+        reason: is2fa
+          ? "Conta NowPayments não está habilitada para payouts. Configure email + 2FA no painel do NowPayments (Settings → Payouts)."
+          : `Erro ao verificar saldo: ${msg}`,
+        balances: {},
+      });
+    }
+  } catch (err) {
+    req.log.error({ err }, "Admin nowpayments payout status error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 // GET /admin/audit-logs
 router.get("/audit-logs", async (req: AuthRequest, res) => {
   try {

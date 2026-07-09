@@ -14,7 +14,6 @@ interface PaymentConfig {
   nowpayments: {
     enabled: boolean;
     priceCurrency: string;
-    currencies: { code: string; label: string; network: string }[];
   };
   mercadopago: {
     enabled: boolean;
@@ -93,9 +92,9 @@ export default function Deposit() {
 
   const methods: MethodOption[] = [];
   if (config?.nowpayments.enabled) {
-    for (const c of config.nowpayments.currencies) {
-      methods.push({ kind: "nowpayments", code: c.code, label: c.label, network: c.network });
-    }
+    // Agora é uma única opção "Cripto" — a moeda é escolhida na página hosted do NowPayments,
+    // que mostra apenas as moedas que o merchant habilitou na conta.
+    methods.push({ kind: "nowpayments", code: "crypto", label: "Cripto (BTC, USDT, USDC e mais)", network: "NowPayments" });
   }
   if (config?.mercadopago.enabled) {
     for (const m of config.mercadopago.methods) {
@@ -115,11 +114,19 @@ export default function Deposit() {
     try {
       const inv = await apiPost<Invoice>("/api/payments/create", {
         provider: selectedMethod.kind,
-        payCurrency: selectedMethod.kind === "nowpayments" ? selectedMethod.code : "pix",
+        // NowPayments: não enviamos payCurrency — o usuário escolhe na página hosted
+        // (assim só aparecem as moedas que o merchant liberou na conta do NowPayments)
+        payCurrency: selectedMethod.kind === "mercadopago" ? "pix" : undefined,
         amount: amt,
       });
       setInvoice(inv);
-      toast.success("Pagamento gerado! Escaneie o QR ou acesse o link.");
+      // Para NowPayments, abrir automaticamente a página hosted em nova aba
+      if (selectedMethod.kind === "nowpayments" && inv.payUrl) {
+        window.open(inv.payUrl, "_blank", "noopener,noreferrer");
+        toast.success("Página de pagamento aberta. Escolha a moeda e pague lá.");
+      } else {
+        toast.success("Pagamento gerado! Escaneie o QR ou acesse o link.");
+      }
     } catch (e: any) {
       toast.error(e?.message || e?.data?.error || "Erro ao criar pagamento");
     } finally {
@@ -245,14 +252,19 @@ export default function Deposit() {
               </div>
             )}
 
-            {/* Pay URL (nowpayments hosted page) */}
+            {/* Pay URL (nowpayments hosted page) — botão principal para cripto */}
             {!isPix && invoice.payUrl && (
               <a href={invoice.payUrl} target="_blank" rel="noopener noreferrer" className="block">
-                <Button variant="outline" className="w-full">
+                <Button className="w-full h-12 text-base font-bold">
                   <ExternalLink className="mr-2 h-4 w-4" />
                   Abrir página de pagamento
                 </Button>
               </a>
+            )}
+            {!isPix && !invoice.payAddress && !invoice.payUrl && (
+              <p style={{ fontSize: "12px", color: "#94a3b8", textAlign: "center" }}>
+                Aguardando geração do link de pagamento...
+              </p>
             )}
 
             <p style={{ fontSize: "11px", color: "#64748b", textAlign: "center", lineHeight: 1.5 }}>

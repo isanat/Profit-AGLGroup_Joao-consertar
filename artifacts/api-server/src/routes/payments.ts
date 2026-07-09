@@ -33,11 +33,11 @@ router.get("/config", requireAuth, async (req: AuthRequest, res) => {
       nowpayments: {
         enabled: npEnabled,
         priceCurrency: settings.nowpaymentsPriceCurrency || "BRL",
-        currencies: npEnabled ? NOWPAYMENTS_POPULAR_CURRENCIES : [],
+        // Não enviamos lista de moedas — o usuário escolhe na página hosted do NowPayments,
+        // que mostra apenas as moedas que o merchant habilitou na conta.
       },
       mercadopago: {
         enabled: mpEnabled,
-        // PIX sempre disponível quando MP está ligado
         methods: mpEnabled ? [{ code: "pix", label: "PIX (QR Code dinâmico)" }] : [],
       },
       minDeposit: Number(await getSetting("minDeposit")) || 10,

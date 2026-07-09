@@ -150,6 +150,26 @@ export const NOWPAYMENTS_POPULAR_CURRENCIES = [
 // PAYOUTS — enviar cripto para carteira de sócios (auto-split)
 // ═══════════════════════════════════════════════════════════════════════════════
 
+/**
+ * Verifica o saldo da conta NowPayments (para payouts).
+ * IMPORTANTE: NowPayments exige email + 2FA configurados na conta para permitir
+ * payouts via API. Se esta chamada falhar com erro de permissão, significa que
+ * a conta não está habilitada para payouts.
+ *
+ * Retorna os saldos por moeda. Se conseguir ler, a API key tem permissão de payout.
+ */
+export async function getBalance(): Promise<Record<string, number>> {
+  const result = await nowpaymentsFetch("/balance", { method: "GET" });
+  // Resultado: [{ currency, amount, ... }, ...]
+  const balances: Record<string, number> = {};
+  if (Array.isArray(result)) {
+    for (const b of result) {
+      if (b.currency) balances[b.currency] = Number(b.amount ?? 0);
+    }
+  }
+  return balances;
+}
+
 export interface NowPaymentsPayoutResult {
   id: number;
   batch_id?: number;
