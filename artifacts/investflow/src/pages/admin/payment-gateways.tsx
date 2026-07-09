@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { apiGet, apiPatch } from "@/lib/api";
 
 interface GatewayConfig {
-  nowpayments: { enabled: boolean; apiKeyConfigured: boolean; ipnSecretConfigured: boolean; nowpayments2faSecretConfigured: boolean; emailConfigured: boolean; passwordConfigured: boolean; baseUrl: string; priceCurrency: string; };
+  nowpayments: { enabled: boolean; apiKeyConfigured: boolean; ipnSecretConfigured: boolean; twoFaSecretConfigured: boolean; emailConfigured: boolean; passwordConfigured: boolean; baseUrl: string; priceCurrency: string; };
   mercadopago: { enabled: boolean; accessTokenConfigured: boolean; baseUrl: string; };
   partnerSplitEnabled: boolean;
 }
@@ -134,7 +134,7 @@ export function PaymentGatewaysContent({ embedded = false }: { embedded?: boolea
             <h2 className="text-lg font-bold text-amber-400">NowPayments</h2>
             <p className="text-xs text-muted-foreground">Cripto: BTC, USDT, USDC, BNB, ETH, etc.</p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             {config?.nowpayments.apiKeyConfigured ? (
               <Badge className="bg-emerald-500/15 text-emerald-400 border-emerald-500/30"><CheckCircle2 className="h-3 w-3 mr-1" /> API Key OK</Badge>
             ) : (
@@ -144,6 +144,21 @@ export function PaymentGatewaysContent({ embedded = false }: { embedded?: boolea
               <Badge className="bg-emerald-500/15 text-emerald-400 border-emerald-500/30"><CheckCircle2 className="h-3 w-3 mr-1" /> IPN OK</Badge>
             ) : (
               <Badge variant="outline" className="text-amber-400 border-amber-500/30"><XCircle className="h-3 w-3 mr-1" /> Sem IPN</Badge>
+            )}
+            {(config?.nowpayments as any)?.twoFaSecretConfigured ? (
+              <Badge className="bg-emerald-500/15 text-emerald-400 border-emerald-500/30"><CheckCircle2 className="h-3 w-3 mr-1" /> 2FA OK</Badge>
+            ) : (
+              <Badge variant="outline" className="text-amber-400 border-amber-500/30"><XCircle className="h-3 w-3 mr-1" /> Sem 2FA</Badge>
+            )}
+            {(config?.nowpayments as any)?.emailConfigured ? (
+              <Badge className="bg-emerald-500/15 text-emerald-400 border-emerald-500/30"><CheckCircle2 className="h-3 w-3 mr-1" /> Email OK</Badge>
+            ) : (
+              <Badge variant="outline" className="text-amber-400 border-amber-500/30"><XCircle className="h-3 w-3 mr-1" /> Sem Email</Badge>
+            )}
+            {(config?.nowpayments as any)?.passwordConfigured ? (
+              <Badge className="bg-emerald-500/15 text-emerald-400 border-emerald-500/30"><CheckCircle2 className="h-3 w-3 mr-1" /> Senha OK</Badge>
+            ) : (
+              <Badge variant="outline" className="text-amber-400 border-amber-500/30"><XCircle className="h-3 w-3 mr-1" /> Sem Senha</Badge>
             )}
           </div>
         </div>
@@ -155,7 +170,7 @@ export function PaymentGatewaysContent({ embedded = false }: { embedded?: boolea
           </label>
           <Field label="API Key" value={form.nowpaymentsApiKey} onChange={(v) => setForm({ ...form, nowpaymentsApiKey: v })} placeholder={config?.nowpayments.apiKeyConfigured ? "•••••• (preenchido — digite para trocar)" : "Cole sua API Key do NowPayments"} type="password" />
           <Field label="IPN Secret" value={form.nowpaymentsIpnSecret} onChange={(v) => setForm({ ...form, nowpaymentsIpnSecret: v })} placeholder={config?.nowpayments.ipnSecretConfigured ? "•••••• (preenchido — digite para trocar)" : "IPN secret (Account → IPN secret)"} type="password" />
-          <Field label="2FA Secret (TOTP) — para auto-payout de sócios" value={form.nowpayments2faSecret} onChange={(v) => setForm({ ...form, nowpayments2faSecret: v })} placeholder={config?.nowpayments.nowpayments2faSecretConfigured ? "•••••• (preenchido — digite para trocar)" : "Secret do Google Authenticator (Settings → 2FA → secret)"} type="password" />
+          <Field label="2FA Secret (TOTP) — para auto-payout de sócios" value={form.nowpayments2faSecret} onChange={(v) => setForm({ ...form, nowpayments2faSecret: v })} placeholder={config?.nowpayments.twoFaSecretConfigured ? "•••••• (preenchido — digite para trocar)" : "Secret do Google Authenticator (Settings → 2FA → secret)"} type="password" />
           {form.nowpayments2faSecret && (
             <p className="text-[10px] text-emerald-400">✓ Com o 2FA secret configurado, os payouts para sócios são verificados automaticamente (TOTP) — sem digitar código nem ler email.</p>
           )}
