@@ -228,6 +228,7 @@ async function seed() {
     { key: "mercadopagoWebhookSecret", value: "" },
     { key: "mercadopagoBaseUrl", value: "https://api.mercadopago.com/v1" },
     { key: "partnerSplitEnabled", value: "true" },
+    { key: "brlUsdRate", value: "0.18" },
   ];
 
   for (const s of defaultSettings) {

@@ -66,20 +66,36 @@ export const webhookEventsTable = pgTable("webhook_events", {
 });
 
 // ─── Partner payouts (saques dos sócios) ──────────────────────────────────────
-export const partnerPayoutStatusEnum = pgEnum("partner_payout_status", ["pending", "processing", "completed", "rejected"]);
+export const partnerPayoutStatusEnum = pgEnum("partner_payout_status", [
+  "pending",              // criado, aguardando processamento
+  "awaiting_confirmation", // NowPayments criou o payout, aguarda código 2FA (se aplicável)
+  "processing",           // payout aceito/enviado pela NowPayments, aguardando confirmação na rede
+  "completed",            // confirmado na rede — dinheiro enviado
+  "failed",               // falhou — valor devolvido ao saldo do sócio
+  "rejected",
+]);
 
 export const partnerPayoutsTable = pgTable("partner_payouts", {
   id: serial("id").primaryKey(),
   partnerId: integer("partner_id").notNull().references(() => partnersTable.id, { onDelete: "cascade" }),
-  amount: numeric("amount", { precision: 20, scale: 8 }).notNull(),
-  method: text("method").notNull(), // "pix" | "crypto" | "bank"
-  destination: text("destination"), // chave PIX / carteira / dados bancários
-  status: partnerPayoutStatusEnum("status").notNull().default("pending"),
+  amount: numeric("amount", { precision: 20, scale: 8 }).notNull(), // valor na moeda original (USD)
+  usdAmount: numeric("usd_amount", { precision: 20, scale: 8 }).notNull(), // valor em USD
+  currency: text("currency").notNull().default("usdtbsc"), // NowPayments payout currency
+  method: text("method").notNull().default("nowpayments"), // "nowpayments" (auto) | "pix" | "bank" (manual)
+  destination: text("destination"), // carteira cripto / chave PIX / dados bancários
+  // ── NowPayments payout ──
+  providerPayoutId: text("provider_payout_id"), // NowPayments payout ID
+  providerBatchId: text("provider_batch_id"),
+  providerStatus: text("provider_status"), // CREATED | PROCESSING | FINISHED | FAILED
   transactionHash: text("transaction_hash"),
+  externalId: text("external_id"), // unique_external_id enviado ao NowPayments
+  status: partnerPayoutStatusEnum("status").notNull().default("pending"),
+  failureReason: text("failure_reason"),
   notes: text("notes"),
   processedBy: integer("processed_by").references(() => usersTable.id),
   processedAt: timestamp("processed_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });
 
 export type PaymentInvoice = typeof paymentInvoicesTable.$inferSelect;

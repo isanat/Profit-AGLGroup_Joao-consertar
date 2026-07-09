@@ -24,9 +24,8 @@ const defaultSettings: Record<string, string> = {
   // ── Partner split ─────────────────────────────────────────────────────────
   // Se true, todo pagamento confirmado via gateway é dividido entre sócios ativos
   partnerSplitEnabled: "true",
-  // % mínima que fica na plataforma (sócios dividem o resto proporcionalmente).
-  // Se a soma dos splitPercent dos sócios < 100, o restante fica na plataforma.
-  // Se a soma > 100, é normalizado proporcionalmente.
+  // Taxa BRL→USD para conversão do split (1 BRL = X USD). Atualizada via cron do BCB.
+  brlUsdRate: "0.18",
 };
 
 export async function getSetting(key: string): Promise<string> {
@@ -60,6 +59,7 @@ export async function getAllSettings(): Promise<Record<string, string | number |
     mercadopagoBaseUrl: String(result.mercadopagoBaseUrl),
     mercadopagoAccessTokenConfigured: Boolean(result.mercadopagoAccessToken),
     partnerSplitEnabled: result.partnerSplitEnabled !== "false",
+    brlUsdRate: Number(result.brlUsdRate),
   };
 }
 

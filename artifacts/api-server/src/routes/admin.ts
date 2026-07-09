@@ -418,6 +418,7 @@ router.patch("/settings", async (req: AuthRequest, res) => {
       "mercadopagoBaseUrl",
       // Partner split
       "partnerSplitEnabled",
+      "brlUsdRate",
     ];
     for (const key of allowed) {
       if (req.body[key] !== undefined) {
@@ -754,13 +755,17 @@ router.get("/partners", async (req: AuthRequest, res) => {
 // POST /admin/partners
 router.post("/partners", async (req: AuthRequest, res) => {
   try {
-    const { name, email, document, splitPercent, payoutMethod, pixKey, pixKeyType, cryptoWallet, bankInfo, notes, status } = req.body;
+    const { name, email, role, document, splitPercent, payoutWallet, payoutCurrency, minPayout, autoPayout, payoutMethod, pixKey, pixKeyType, cryptoWallet, bankInfo, notes, status } = req.body;
     if (!name || splitPercent === undefined) { res.status(400).json({ error: "name and splitPercent are required" }); return; }
     const pct = Number(splitPercent);
     if (isNaN(pct) || pct < 0 || pct > 100) { res.status(400).json({ error: "splitPercent must be 0-100" }); return; }
     const [partner] = await db.insert(partnersTable).values({
-      name, email: email || null, document: document || null,
+      name, email: email || null, role: role || null, document: document || null,
       splitPercent: String(pct),
+      payoutWallet: payoutWallet || null,
+      payoutCurrency: payoutCurrency || "usdtbsc",
+      minPayout: String(minPayout ?? 10),
+      autoPayout: autoPayout !== false,
       payoutMethod: payoutMethod || null, pixKey: pixKey || null, pixKeyType: pixKeyType || null,
       cryptoWallet: cryptoWallet || null, bankInfo: bankInfo || null,
       notes: notes || null, status: status || "active",
@@ -779,11 +784,13 @@ router.patch("/partners/:id", async (req: AuthRequest, res) => {
     const id = parseInt(req.params.id);
     const [before] = await db.select().from(partnersTable).where(eq(partnersTable.id, id));
     if (!before) { res.status(404).json({ error: "Partner not found" }); return; }
-    const allowed = ["name", "email", "document", "splitPercent", "payoutMethod", "pixKey", "pixKeyType", "cryptoWallet", "bankInfo", "notes", "status"];
+    const allowed = ["name", "email", "role", "document", "splitPercent", "payoutWallet", "payoutCurrency", "minPayout", "autoPayout", "payoutMethod", "pixKey", "pixKeyType", "cryptoWallet", "bankInfo", "notes", "status"];
     const updates: Record<string, unknown> = {};
     for (const k of allowed) {
       if (req.body[k] !== undefined) {
-        updates[k] = k === "splitPercent" ? String(req.body[k]) : req.body[k];
+        if (k === "splitPercent" || k === "minPayout") updates[k] = String(req.body[k]);
+        else if (k === "autoPayout") updates[k] = Boolean(req.body[k]);
+        else updates[k] = req.body[k];
       }
     }
     if (Object.keys(updates).length === 0) { res.status(400).json({ error: "No fields to update" }); return; }
@@ -828,7 +835,7 @@ router.get("/partners/:id/splits", async (req: AuthRequest, res) => {
   }
 });
 
-// ─── Partner payouts (saques dos sócios) ──────────────────────────────────────
+// ─── Partner payouts (saques dos sócios — auto via NowPayments + manual) ───────
 
 // GET /admin/partner-payouts
 router.get("/partner-payouts", async (req: AuthRequest, res) => {
@@ -838,9 +845,11 @@ router.get("/partner-payouts", async (req: AuthRequest, res) => {
     const pmap = Object.fromEntries(partners.map(p => [p.id, p]));
     res.json(payouts.map(p => ({
       id: p.id, partnerId: p.partnerId, partnerName: pmap[p.partnerId]?.name ?? "—",
-      amount: Number(p.amount), method: p.method, destination: p.destination,
-      status: p.status, transactionHash: p.transactionHash, notes: p.notes,
-      processedAt: p.processedAt, createdAt: p.createdAt,
+      amount: Number(p.amount), usdAmount: Number(p.usdAmount), currency: p.currency,
+      method: p.method, destination: p.destination,
+      providerPayoutId: p.providerPayoutId, providerStatus: p.providerStatus,
+      status: p.status, transactionHash: p.transactionHash, failureReason: p.failureReason,
+      notes: p.notes, processedAt: p.processedAt, createdAt: p.createdAt,
     })));
   } catch (err) {
     req.log.error({ err }, "Admin list partner payouts error");
@@ -848,7 +857,50 @@ router.get("/partner-payouts", async (req: AuthRequest, res) => {
   }
 });
 
-// POST /admin/partner-payouts — cria um saque (marca payout como done, debita balanceDue)
+// POST /admin/partners/:id/trigger-payout — dispara auto-payout manualmente (via NowPayments)
+router.post("/partners/:id/trigger-payout", async (req: AuthRequest, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const { triggerAutoPayout } = await import("../lib/split-engine");
+    const result = await triggerAutoPayout(id);
+    if (!result.success) {
+      res.status(400).json({ error: result.reason || "Não foi possível disparar o payout" });
+      return;
+    }
+    await auditLog({ userId: req.userId!, action: "trigger_partner_payout", entityType: "partner_payout", entityId: result.payoutId, req });
+    res.json({ payoutId: result.payoutId, message: "Payout disparado via NowPayments" });
+  } catch (err: any) {
+    req.log.error({ err }, "Admin trigger payout error");
+    res.status(500).json({ error: err?.message || "Internal server error" });
+  }
+});
+
+// POST /admin/partner-payouts/:id/confirm — confirma payout com código 2FA do email (NowPayments)
+router.post("/partner-payouts/:id/confirm", async (req: AuthRequest, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const { verificationCode } = req.body;
+    if (!verificationCode) { res.status(400).json({ error: "verificationCode is required" }); return; }
+    const [payout] = await db.select().from(partnerPayoutsTable).where(eq(partnerPayoutsTable.id, id));
+    if (!payout) { res.status(404).json({ error: "Payout not found" }); return; }
+    if (!payout.providerPayoutId) { res.status(400).json({ error: "Payout sem providerPayoutId" }); return; }
+    const { confirmPayout, mapPayoutStatus } = await import("../lib/nowpayments");
+    const np = await confirmPayout(Number(payout.providerPayoutId), String(verificationCode));
+    const mapped = mapPayoutStatus(np.status);
+    await db.update(partnerPayoutsTable).set({
+      providerStatus: np.status,
+      status: mapped === "completed" ? "completed" : mapped === "failed" ? "failed" : "processing",
+      transactionHash: np.tx_hash || null,
+    }).where(eq(partnerPayoutsTable.id, id));
+    await auditLog({ userId: req.userId!, action: "confirm_partner_payout", entityType: "partner_payout", entityId: id, req });
+    res.json({ message: "Payout confirmado", status: np.status });
+  } catch (err: any) {
+    req.log.error({ err }, "Admin confirm payout error");
+    res.status(500).json({ error: err?.message || "Internal server error" });
+  }
+});
+
+// POST /admin/partner-payouts — registra payout MANUAL (PIX/bank, não via NowPayments)
 router.post("/partner-payouts", async (req: AuthRequest, res) => {
   try {
     const { partnerId, amount, method, destination, notes } = req.body;
@@ -857,10 +909,11 @@ router.post("/partner-payouts", async (req: AuthRequest, res) => {
     if (!partner) { res.status(404).json({ error: "Partner not found" }); return; }
     const amt = Number(amount);
     if (amt <= 0 || amt > Number(partner.balanceDue)) {
-      res.status(400).json({ error: `Valor inválido (saldo disponível: R$ ${Number(partner.balanceDue).toFixed(2)})` }); return;
+      res.status(400).json({ error: `Valor inválido (saldo disponível: $${Number(partner.balanceDue).toFixed(2)} USD)` }); return;
     }
     const [payout] = await db.insert(partnerPayoutsTable).values({
-      partnerId: partner.id, amount: String(amt), method, destination: destination || null, notes: notes || null,
+      partnerId: partner.id, amount: String(amt), usdAmount: String(amt), currency: "USD",
+      method, destination: destination || null, notes: notes || null,
       status: "completed", processedBy: req.userId, processedAt: new Date(),
     }).returning();
     // Debit partner balance + add to totalPaid
@@ -868,8 +921,11 @@ router.post("/partner-payouts", async (req: AuthRequest, res) => {
       balanceDue: String(Number(partner.balanceDue) - amt),
       totalPaid: String(Number(partner.totalPaid) + amt),
     }).where(eq(partnersTable.id, partner.id));
+    // Mark credited splits as paid
+    await db.update(partnerSplitsTable).set({ status: "paid", paidAt: new Date(), payoutId: payout.id })
+      .where(and(eq(partnerSplitsTable.partnerId, partner.id), eq(partnerSplitsTable.status, "credited")));
     await auditLog({ userId: req.userId!, action: "create_partner_payout", entityType: "partner_payout", entityId: payout.id, newValue: JSON.stringify(req.body), req });
-    res.status(201).json({ id: payout.id, message: "Payout registrado" });
+    res.status(201).json({ id: payout.id, message: "Payout manual registrado" });
   } catch (err) {
     req.log.error({ err }, "Admin create partner payout error");
     res.status(500).json({ error: "Internal server error" });
@@ -920,11 +976,14 @@ router.get("/webhook-events", async (req: AuthRequest, res) => {
 
 function formatPartner(p: typeof partnersTable.$inferSelect) {
   return {
-    id: p.id, name: p.name, email: p.email, document: p.document,
+    id: p.id, name: p.name, email: p.email, role: p.role, document: p.document,
     splitPercent: Number(p.splitPercent),
+    payoutWallet: p.payoutWallet, payoutCurrency: p.payoutCurrency,
+    minPayout: Number(p.minPayout), autoPayout: p.autoPayout,
     payoutMethod: p.payoutMethod, pixKey: p.pixKey, pixKeyType: p.pixKeyType,
     cryptoWallet: p.cryptoWallet, bankInfo: p.bankInfo,
-    balanceDue: Number(p.balanceDue), totalEarned: Number(p.totalEarned), totalPaid: Number(p.totalPaid),
+    balanceDue: Number(p.balanceDue), pendingPayout: Number(p.pendingPayout),
+    totalEarned: Number(p.totalEarned), totalPaid: Number(p.totalPaid),
     notes: p.notes, status: p.status, createdAt: p.createdAt,
   };
 }

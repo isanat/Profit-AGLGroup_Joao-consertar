@@ -145,3 +145,99 @@ export const NOWPAYMENTS_POPULAR_CURRENCIES = [
   { code: "doge", label: "Dogecoin (DOGE)", network: "Dogecoin" },
   { code: "sol", label: "Solana (SOL)", network: "Solana" },
 ];
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// PAYOUTS — enviar cripto para carteira de sócios (auto-split)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export interface NowPaymentsPayoutResult {
+  id: number;
+  batch_id?: number;
+  amount: number;
+  currency: string;
+  address: string;
+  status: string;     // CREATED | PROCESSING | FINISHED | FAILED | WAITING
+  tx_hash?: string | null;
+  ipn_callback_url?: string;
+  unique_external_id?: string;
+  error?: string;
+}
+
+export interface CreatePayoutInput {
+  address: string;       // carteira de destino
+  currency: string;      // ex.: "usdtbsc"
+  amount: number;        // valor na moeda
+  ipnCallbackUrl: string;
+  externalId: string;    // idempotency key (nosso partner_payouts.id)
+}
+
+/**
+ * Cria um payout (saque) via NowPayments.
+ * O dinheiro é enviado da conta custódia do NowPayments para a carteira informada.
+ *
+ * Nota: se a conta NowPayments exigir 2FA para payouts, o status será "WAITING"
+ * e será necessário confirmar com o código do email via confirmPayout().
+ * Se 2FA estiver desativado, o payout vai direto para "PROCESSING".
+ */
+export async function createPayout(input: CreatePayoutInput): Promise<NowPaymentsPayoutResult> {
+  const body = {
+    address: input.address,
+    currency: input.currency,
+    amount: input.amount,
+    ipn_callback_url: input.ipnCallbackUrl,
+    unique_external_id: input.externalId,
+  };
+  const result = await nowpaymentsFetch("/payout", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+  return result as NowPaymentsPayoutResult;
+}
+
+/**
+ * Confirma um payout com o código de verificação enviado por email (2FA).
+ * Necessário apenas se a conta NowPayments exigir 2FA para payouts.
+ */
+export async function confirmPayout(payoutId: number, verificationCode: string): Promise<NowPaymentsPayoutResult> {
+  const result = await nowpaymentsFetch(`/payout/${payoutId}/confirm`, {
+    method: "POST",
+    body: JSON.stringify({ verification_code: verificationCode }),
+  });
+  return result as NowPaymentsPayoutResult;
+}
+
+/**
+ * Consulta o status de um payout pelo ID.
+ */
+export async function getPayout(payoutId: number): Promise<NowPaymentsPayoutResult> {
+  const result = await nowpaymentsFetch(`/payout/${payoutId}`, { method: "GET" });
+  return result as NowPaymentsPayoutResult;
+}
+
+/**
+ * Mapeia o status de payout do NowPayments → nosso enum interno.
+ * CREATED/WAITING = aguardando confirmação 2FA
+ * PROCESSING/SENDING = enviado, aguardando confirmação na rede
+ * FINISHED/SENT = concluído
+ * FAILED/CANCELLED = falhou
+ */
+export function mapPayoutStatus(status: string): "awaiting_confirmation" | "processing" | "completed" | "failed" {
+  const s = (status || "").toLowerCase();
+  if (["created", "waiting", "awaiting"].includes(s)) return "awaiting_confirmation";
+  if (["processing", "sending", "in_process"].includes(s)) return "processing";
+  if (["finished", "sent", "completed", "done"].includes(s)) return "completed";
+  if (["failed", "cancelled", "canceled", "rejected", "refunded"].includes(s)) return "failed";
+  return "processing"; // unknown → assume processing (safe default)
+}
+
+/** Detecta se um payload de webhook do NowPayments é um evento de payout (não de depósito). */
+export function isPayoutEvent(payload: any): boolean {
+  if (!payload) return false;
+  // Payout IPNs incluem batch_id ou type=payout ou o campo payout_id
+  return Boolean(
+    payload.batch_id ||
+    payload.type === "payout" ||
+    payload.payout_id ||
+    (payload.id && payload.address && payload.currency && payload.amount && !payload.order_id && !payload.payment_id)
+  );
+}

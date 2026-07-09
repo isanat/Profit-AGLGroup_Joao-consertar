@@ -10,6 +10,7 @@ import {
   getInvoice as npGetInvoice,
   verifyIpnSignature as npVerifyIpn,
   mapNowPaymentsStatus as npMapStatus,
+  isPayoutEvent as npIsPayoutEvent,
   NOWPAYMENTS_POPULAR_CURRENCIES,
 } from "../lib/nowpayments";
 import {
@@ -18,7 +19,7 @@ import {
   verifyWebhookSignature as mpVerifyWebhook,
   mapMercadoPagoStatus as mpMapStatus,
 } from "../lib/mercadopago";
-import { processConfirmedInvoice } from "../lib/split-engine";
+import { processConfirmedInvoice, processPayoutWebhook, triggerAutoPayout } from "../lib/split-engine";
 
 const router = Router();
 
@@ -276,7 +277,20 @@ router.post("/webhook/nowpayments", async (req: Request, res: Response) => {
       });
     }
 
-    // Find our invoice by providerInvoiceId or order_id
+    // ── Detect PAYOUT events (auto-split payouts, not deposit invoices) ──
+    if (npIsPayoutEvent(payload)) {
+      const npPayoutId = String(payload.id || payload.payout_id || "");
+      const payoutStatus = String(payload.status || payload.payout_status || "");
+      const txHash = payload.tx_hash || payload.transaction_hash || null;
+      logger.info({ npPayoutId, payoutStatus }, "NowPayments PAYOUT webhook received");
+      await processPayoutWebhook(npPayoutId, payoutStatus, txHash);
+      await db.update(webhookEventsTable).set({ processed: true, processedAt: new Date() })
+        .where(eq(webhookEventsTable.eventId, eventId));
+      res.status(200).json({ message: "payout processed" });
+      return;
+    }
+
+    // ── DEPOSIT invoice event ──
     const providerInvoiceId = String(payload?.id || payload?.payment_id || "");
     const orderId = String(payload?.order_id || "");
     const [invoice] = await db.select().from(paymentInvoicesTable)
