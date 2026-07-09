@@ -23,8 +23,12 @@ COPY artifacts/ ./artifacts/
 COPY lib/ ./lib/
 COPY scripts/ ./scripts/
 
-# NOTE: --no-frozen-lockfile because the repo's overrides config does not match
+# NOTE 1: --no-frozen-lockfile because the repo's overrides config does not match
 # the committed lockfile (ERR_PNPM_LOCKFILE_CONFIG_MISMATCH). pnpm reconciles it.
+# NOTE 2: The node:*-slim base image sets NODE_ENV=production by default, which
+# makes pnpm skip devDependencies (vite, esbuild, tsx...). Override to development
+# so devDeps are installed during the build.
+ENV NODE_ENV=development
 RUN pnpm install --no-frozen-lockfile
 
 # ---------------------------------------------------------------------------
