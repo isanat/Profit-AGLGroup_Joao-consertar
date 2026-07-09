@@ -126,17 +126,16 @@ export function mapNowPaymentsStatus(status: string): "pending" | "confirming" |
 }
 
 /**
- * Lista as moedas disponíveis para pagamento no NowPayments.
- * Retorna apenas as moedas que o merchant habilitou na conta (filtered by the
- * API key). Usado para o usuário escolher a moeda ANTES de criar o payment,
- * assim o NowPayments retorna endereço + QR code direto (sem hosted page).
+ * Lista as moedas HABILITADAS para pagamento no NowPayments.
+ * Usa /full-currencies que retorna objetos com campo is_enabled (true/false),
+ * filtrando APENAS as moedas que o merchant liberou na conta.
+ * (O endpoint /currencies simples retorna todas as suportadas, sem filtro.)
  */
 export async function getAvailableCurrencies(): Promise<{ code: string; label: string; network?: string }[]> {
   try {
-    const result = await nowpaymentsFetch("/currencies", { method: "GET" });
-    // Resultado: { currencies: ["btc", "usdttrc20", ...] } ou array
-    const codes: string[] = Array.isArray(result) ? result : (result.currencies || []);
-    // Filtrar para as moedas comuns e mapear para labels amigáveis
+    // /full-currencies retorna { currencies: [{ id, code, is_enabled, ... }, ...] }
+    const result = await nowpaymentsFetch("/full-currencies", { method: "GET" });
+    const all: any[] = Array.isArray(result) ? result : (result.currencies || []);
     const labelMap: Record<string, { label: string; network: string }> = {
       btc: { label: "Bitcoin (BTC)", network: "Bitcoin" },
       usdttrc20: { label: "USDT (TRC20 / Tron)", network: "Tron" },
@@ -151,12 +150,38 @@ export async function getAvailableCurrencies(): Promise<{ code: string; label: s
       doge: { label: "Dogecoin (DOGE)", network: "Dogecoin" },
       sol: { label: "Solana (SOL)", network: "Solana" },
     };
-    return codes
-      .filter((c) => labelMap[c]) // só mostrar as conhecidas (as que o merchant liberou aparecem aqui)
-      .map((c) => ({ code: c, ...labelMap[c] }));
+    // Filtrar: is_enabled === true E está no nosso labelMap (moedas conhecidas)
+    return all
+      .filter((c) => c.is_enabled === true && labelMap[c.code || c.id])
+      .map((c) => {
+        const code = c.code || c.id;
+        return { code, ...labelMap[code] };
+      });
   } catch (err) {
-    logger.error({ err }, "Failed to fetch NowPayments currencies");
-    return [];
+    logger.error({ err }, "Failed to fetch NowPayments full-currencies — falling back to /currencies");
+    // Fallback: /currencies (retorna todas, sem filtro de is_enabled)
+    try {
+      const result = await nowpaymentsFetch("/currencies", { method: "GET" });
+      const codes: string[] = Array.isArray(result) ? result : (result.currencies || []);
+      const labelMap: Record<string, { label: string; network: string }> = {
+        btc: { label: "Bitcoin (BTC)", network: "Bitcoin" },
+        usdttrc20: { label: "USDT (TRC20 / Tron)", network: "Tron" },
+        usdtbsc: { label: "USDT (BEP20 / BSC)", network: "BSC" },
+        usdterc20: { label: "USDT (ERC20 / Ethereum)", network: "Ethereum" },
+        usdc: { label: "USDC (ERC20)", network: "Ethereum" },
+        usdcbsc: { label: "USDC (BEP20 / BSC)", network: "BSC" },
+        bnb: { label: "BNB (BEP20)", network: "BSC" },
+        eth: { label: "Ethereum (ETH)", network: "Ethereum" },
+        trx: { label: "Tron (TRX)", network: "Tron" },
+        ltc: { label: "Litecoin (LTC)", network: "Litecoin" },
+        doge: { label: "Dogecoin (DOGE)", network: "Dogecoin" },
+        sol: { label: "Solana (SOL)", network: "Solana" },
+      };
+      return codes.filter((c) => labelMap[c]).map((c) => ({ code: c, ...labelMap[c] }));
+    } catch (err2) {
+      logger.error({ err: err2 }, "Failed to fetch NowPayments currencies (fallback)");
+      return [];
+    }
   }
 }
 
