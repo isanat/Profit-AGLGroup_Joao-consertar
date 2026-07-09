@@ -117,14 +117,92 @@ export function mapNowPaymentsStatus(status: string): "pending" | "confirming" |
   const s = (status || "").toLowerCase();
   if (["waiting", "new"].includes(s)) return "pending";
   if (["confirming", "confirmed", "sending"].includes(s)) {
-    // "confirming" = recebido na blockchain aguardando confirmações
-    // "sending" / "confirmed" = pago — tratamos como confirmado para crédito
     return s === "confirming" ? "confirming" : "confirmed";
   }
   if (["finished", "paid"].includes(s)) return "confirmed";
   if (["expired", "expired_time"].includes(s)) return "expired";
   if (["failed", "refunded", "canceled"].includes(s)) return "failed";
   return "pending";
+}
+
+/**
+ * Lista as moedas disponíveis para pagamento no NowPayments.
+ * Retorna apenas as moedas que o merchant habilitou na conta (filtered by the
+ * API key). Usado para o usuário escolher a moeda ANTES de criar o payment,
+ * assim o NowPayments retorna endereço + QR code direto (sem hosted page).
+ */
+export async function getAvailableCurrencies(): Promise<{ code: string; label: string; network?: string }[]> {
+  try {
+    const result = await nowpaymentsFetch("/currencies", { method: "GET" });
+    // Resultado: { currencies: ["btc", "usdttrc20", ...] } ou array
+    const codes: string[] = Array.isArray(result) ? result : (result.currencies || []);
+    // Filtrar para as moedas comuns e mapear para labels amigáveis
+    const labelMap: Record<string, { label: string; network: string }> = {
+      btc: { label: "Bitcoin (BTC)", network: "Bitcoin" },
+      usdttrc20: { label: "USDT (TRC20 / Tron)", network: "Tron" },
+      usdtbsc: { label: "USDT (BEP20 / BSC)", network: "BSC" },
+      usdterc20: { label: "USDT (ERC20 / Ethereum)", network: "Ethereum" },
+      usdc: { label: "USDC (ERC20)", network: "Ethereum" },
+      usdcbsc: { label: "USDC (BEP20 / BSC)", network: "BSC" },
+      bnb: { label: "BNB (BEP20)", network: "BSC" },
+      eth: { label: "Ethereum (ETH)", network: "Ethereum" },
+      trx: { label: "Tron (TRX)", network: "Tron" },
+      ltc: { label: "Litecoin (LTC)", network: "Litecoin" },
+      doge: { label: "Dogecoin (DOGE)", network: "Dogecoin" },
+      sol: { label: "Solana (SOL)", network: "Solana" },
+    };
+    return codes
+      .filter((c) => labelMap[c]) // só mostrar as conhecidas (as que o merchant liberou aparecem aqui)
+      .map((c) => ({ code: c, ...labelMap[c] }));
+  } catch (err) {
+    logger.error({ err }, "Failed to fetch NowPayments currencies");
+    return [];
+  }
+}
+
+export interface NowPaymentsPaymentResult {
+  payment_id: string;
+  payment_status: string;
+  pay_address: string;
+  pay_amount: number;
+  pay_currency: string;
+  price_amount: number;
+  price_currency: string;
+  order_id?: string;
+  order_description?: string;
+  purchase_id?: string;
+  expiration_estimate_date?: number;
+  qr_code?: string; // some responses include this
+  created_at: number;
+  updated_at?: number;
+}
+
+/**
+ * Cria um PAYMENT (não invoice) — retorna endereço de carteira + valor direto,
+ * sem página hosted. O usuário copia o endereço e paga.
+ * Requer pay_currency (moeda específica que o merchant liberou).
+ */
+export async function createPayment(input: NowPaymentsCreateInvoiceInput): Promise<NowPaymentsPaymentResult> {
+  if (!input.payCurrency) {
+    throw new Error("payCurrency is required for createPayment (use createInvoice for hosted page)");
+  }
+  const body: Record<string, unknown> = {
+    price_amount: input.priceAmount,
+    price_currency: input.priceCurrency,
+    pay_currency: input.payCurrency,
+    order_id: input.orderId,
+    order_description: input.orderDescription || `InvestFlow #${input.orderId}`,
+    is_fixed_rate: true,
+    is_fee_paid_by_user: true,
+  };
+  if (input.successUrl) body.success_url = input.successUrl;
+  if (input.canceledUrl) body.canceled_url = input.canceledUrl;
+
+  const result = await nowpaymentsFetch("/payment", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+  return result as NowPaymentsPaymentResult;
 }
 
 /**
@@ -195,9 +273,14 @@ export interface CreatePayoutInput {
  * Cria um payout (saque) via NowPayments.
  * O dinheiro é enviado da conta custódia do NowPayments para a carteira informada.
  *
- * Nota: se a conta NowPayments exigir 2FA para payouts, o status será "WAITING"
- * e será necessário confirmar com o código do email via confirmPayout().
- * Se 2FA estiver desativado, o payout vai direto para "PROCESSING".
+ * 2FA AUTOMÁTICO: se o setting nowpayments2faSecret estiver configurado (TOTP
+ * secret do Google Authenticator da conta NowPayments), o payout é verificado
+ * automaticamente gerando um código TOTP e chamando POST /payout/{id}/verify.
+ * Isso elimina a necessidade de digitar código/email — o payout é processado
+ * em segundos, sem intervenção humana.
+ *
+ * Se o secret não estiver configurado ou a verificação falhar, o payout fica
+ * "awaiting_confirmation" para confirmação manual.
  */
 export async function createPayout(input: CreatePayoutInput): Promise<NowPaymentsPayoutResult> {
   const body = {
@@ -210,8 +293,39 @@ export async function createPayout(input: CreatePayoutInput): Promise<NowPayment
   const result = await nowpaymentsFetch("/payout", {
     method: "POST",
     body: JSON.stringify(body),
-  });
-  return result as NowPaymentsPayoutResult;
+  }) as NowPaymentsPayoutResult;
+
+  // ── AUTO-VERIFY 2FA via TOTP ───────────────────────────────────────────────
+  // NowPayments cria o payout em status "WAITING" e exige verificação 2FA para
+  // processar. Usando o mesmo TOTP secret do Google Authenticator, geramos o
+  // código localmente e chamamos /verify — 100% automático, sem email.
+  const settings = await getSecretSettings();
+  const twoFaSecret = settings.nowpayments2faSecret;
+  const batchId = result.batch_id;
+
+  if (twoFaSecret && batchId) {
+    try {
+      const { authenticator } = await import("otplib");
+      const code = authenticator.generate(twoFaSecret);
+      logger.info({ batchId }, "NowPayments: auto-verifying payout with TOTP 2FA");
+      // POST /payout/{batch_id}/verify
+      await nowpaymentsFetch(`/payout/${batchId}/verify`, {
+        method: "POST",
+        body: JSON.stringify({ verification_code: code }),
+      });
+      logger.info({ batchId }, "NowPayments: payout 2FA verified successfully");
+      // Update status — NowPayments now processes the payout
+      result.status = "PROCESSING";
+    } catch (verifyErr: any) {
+      logger.error({ err: verifyErr, batchId }, "NowPayments: 2FA verification failed (payout created but needs manual verify)");
+      // Don't throw — the payout IS created, just needs manual verification.
+      // The auto-refund cron will check real status via API.
+    }
+  } else if (!twoFaSecret) {
+    logger.warn("NowPayments: 2FA secret not configured — payout needs manual verification");
+  }
+
+  return result;
 }
 
 /**

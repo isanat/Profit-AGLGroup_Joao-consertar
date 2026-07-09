@@ -475,7 +475,7 @@ router.patch("/settings", async (req: AuthRequest, res) => {
       "referralCommissionPercent", "referralLevels", "maintenanceMode",
       "depositEnabled", "withdrawalEnabled",
       // Payment gateways
-      "nowpaymentsEnabled", "nowpaymentsApiKey", "nowpaymentsIpnSecret",
+      "nowpaymentsEnabled", "nowpaymentsApiKey", "nowpaymentsIpnSecret", "nowpayments2faSecret",
       "nowpaymentsBaseUrl", "nowpaymentsPriceCurrency",
       "mercadopagoEnabled", "mercadopagoAccessToken", "mercadopagoWebhookSecret",
       "mercadopagoBaseUrl",

@@ -29,12 +29,17 @@ router.get("/config", requireAuth, async (req: AuthRequest, res) => {
     const settings = await getSecretSettings();
     const npEnabled = settings.nowpaymentsEnabled === "true" && Boolean(settings.nowpaymentsApiKey);
     const mpEnabled = settings.mercadopagoEnabled === "true" && Boolean(settings.mercadopagoAccessToken);
+    // Buscar moedas disponíveis dinamicamente (só as que o merchant liberou na conta)
+    let currencies: { code: string; label: string; network?: string }[] = [];
+    if (npEnabled) {
+      const { getAvailableCurrencies } = await import("../lib/nowpayments");
+      currencies = await getAvailableCurrencies();
+    }
     res.json({
       nowpayments: {
         enabled: npEnabled,
         priceCurrency: settings.nowpaymentsPriceCurrency || "BRL",
-        // Não enviamos lista de moedas — o usuário escolhe na página hosted do NowPayments,
-        // que mostra apenas as moedas que o merchant habilitou na conta.
+        currencies,
       },
       mercadopago: {
         enabled: mpEnabled,
@@ -88,25 +93,40 @@ router.post("/create", requireAuth, async (req: AuthRequest, res) => {
           res.status(400).json({ error: "NowPayments não está habilitado" });
           return;
         }
-        const npInvoice = await npCreateInvoice({
+        if (!payCurrency) {
+          res.status(400).json({ error: "Moeda de pagamento é obrigatória para NowPayments (escolha uma na tela de depósito)" });
+          return;
+        }
+        // createPayment (não invoice) → retorna endereço de carteira + valor direto
+        // para exibir QR code + endereço na própria tela (sem redirect para hosted page)
+        const { createPayment: npCreatePayment } = await import("../lib/nowpayments");
+        const npPayment = await npCreatePayment({
           priceAmount: amount,
           priceCurrency,
-          payCurrency: payCurrency || undefined,
+          payCurrency,
           orderId,
           orderDescription: `Depósito InvestFlow — usuário #${req.userId}`,
         });
         await db.update(paymentInvoicesTable).set({
-          providerInvoiceId: String(npInvoice.id),
-          providerStatus: npInvoice.status,
-          payUrl: npInvoice.url,
-          payAddress: npInvoice.pay_address || null,
-          payAmount: npInvoice.pay_amount ? String(npInvoice.pay_amount) : null,
-          expiresAt: npInvoice.expire_at ? new Date(npInvoice.expire_at) : null,
-          metadata: npInvoice,
+          providerInvoiceId: String(npPayment.payment_id),
+          providerStatus: npPayment.payment_status,
+          payCurrency: npPayment.pay_currency,
+          payAddress: npPayment.pay_address,
+          payAmount: String(npPayment.pay_amount),
+          expiresAt: npPayment.expiration_estimate_date ? new Date(npPayment.expiration_estimate_date * 1000) : null,
+          metadata: npPayment,
         }).where(eq(paymentInvoicesTable.id, invoice.id));
 
         await auditLog({ userId: req.userId!, action: "create_payment_invoice", entityType: "payment_invoice", entityId: invoice.id, req });
-        res.status(201).json(formatInvoice({ ...invoice, providerInvoiceId: String(npInvoice.id), payUrl: npInvoice.url, providerStatus: npInvoice.status, payAddress: npInvoice.pay_address || null }));
+        res.status(201).json(formatInvoice({
+          ...invoice,
+          providerInvoiceId: String(npPayment.payment_id),
+          providerStatus: npPayment.payment_status,
+          payCurrency: npPayment.pay_currency,
+          payAddress: npPayment.pay_address,
+          payAmount: npPayment.pay_amount,
+          expiresAt: npPayment.expiration_estimate_date ? new Date(npPayment.expiration_estimate_date * 1000) : null,
+        }));
         return;
       }
 

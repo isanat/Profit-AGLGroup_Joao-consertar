@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useState, useEffect, useCallback } from "react";
+import { QRCodeSVG } from "qrcode.react";
 import { toast } from "sonner";
 import { Copy, CheckCircle2, Wallet, ArrowLeft, Loader2, Clock, ExternalLink, QrCode } from "lucide-react";
 import { apiGet, apiPost } from "@/lib/api";
@@ -14,6 +15,7 @@ interface PaymentConfig {
   nowpayments: {
     enabled: boolean;
     priceCurrency: string;
+    currencies: { code: string; label: string; network?: string }[];
   };
   mercadopago: {
     enabled: boolean;
@@ -92,9 +94,11 @@ export default function Deposit() {
 
   const methods: MethodOption[] = [];
   if (config?.nowpayments.enabled) {
-    // Agora é uma única opção "Cripto" — a moeda é escolhida na página hosted do NowPayments,
-    // que mostra apenas as moedas que o merchant habilitou na conta.
-    methods.push({ kind: "nowpayments", code: "crypto", label: "Cripto (BTC, USDT, USDC e mais)", network: "NowPayments" });
+    // Mostra APENAS as moedas que o merchant liberou na conta NowPayments
+    // (vindas dinamicamente da API /currencies)
+    for (const c of config.nowpayments.currencies) {
+      methods.push({ kind: "nowpayments", code: c.code, label: c.label, network: c.network });
+    }
   }
   if (config?.mercadopago.enabled) {
     for (const m of config.mercadopago.methods) {
@@ -114,19 +118,13 @@ export default function Deposit() {
     try {
       const inv = await apiPost<Invoice>("/api/payments/create", {
         provider: selectedMethod.kind,
-        // NowPayments: não enviamos payCurrency — o usuário escolhe na página hosted
-        // (assim só aparecem as moedas que o merchant liberou na conta do NowPayments)
-        payCurrency: selectedMethod.kind === "mercadopago" ? "pix" : undefined,
+        // NowPayments: envia a moeda selecionada → API retorna endereço + valor direto
+        // Mercado Pago: sempre "pix"
+        payCurrency: selectedMethod.kind === "nowpayments" ? selectedMethod.code : "pix",
         amount: amt,
       });
       setInvoice(inv);
-      // Para NowPayments, abrir automaticamente a página hosted em nova aba
-      if (selectedMethod.kind === "nowpayments" && inv.payUrl) {
-        window.open(inv.payUrl, "_blank", "noopener,noreferrer");
-        toast.success("Página de pagamento aberta. Escolha a moeda e pague lá.");
-      } else {
-        toast.success("Pagamento gerado! Escaneie o QR ou acesse o link.");
-      }
+      toast.success("Pagamento gerado! Envie para o endereço/QR abaixo.");
     } catch (e: any) {
       toast.error(e?.message || e?.data?.error || "Erro ao criar pagamento");
     } finally {
@@ -206,19 +204,25 @@ export default function Deposit() {
               )}
             </div>
 
-            {/* QR Code */}
-            {invoice.qrCodeUrl && (
+            {/* QR Code — PIX usa a imagem base64 do MP; cripto gera QR do endereço localmente */}
+            {isPix && invoice.qrCodeUrl ? (
+              <div style={{ textAlign: "center" }}>
+                <p style={{ fontSize: "12px", color: "#94a3b8", marginBottom: "10px", fontWeight: 600 }}>QR Code PIX</p>
+                <img src={invoice.qrCodeUrl} alt="QR Code PIX" style={{ width: "200px", height: "200px", borderRadius: "12px", background: "#fff", padding: "8px", margin: "0 auto" }} />
+              </div>
+            ) : !isPix && invoice.payAddress ? (
               <div style={{ textAlign: "center" }}>
                 <p style={{ fontSize: "12px", color: "#94a3b8", marginBottom: "10px", fontWeight: 600 }}>
-                  {isPix ? "QR Code PIX" : "QR Code de pagamento"}
+                  QR Code — {invoice.payCurrency?.toUpperCase()}
                 </p>
-                <img
-                  src={invoice.qrCodeUrl}
-                  alt="QR Code"
-                  style={{ width: "200px", height: "200px", borderRadius: "12px", background: "#fff", padding: "8px", margin: "0 auto" }}
-                />
+                <div style={{ width: "200px", height: "200px", borderRadius: "12px", background: "#fff", padding: "8px", margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <QRCodeSVG value={invoice.payAddress} size={184} level="M" />
+                </div>
+                <p style={{ fontSize: "10px", color: "#64748b", marginTop: "6px" }}>
+                  Aponte a câmera da carteira para escanear
+                </p>
               </div>
-            )}
+            ) : null}
 
             {/* PIX copia e cola */}
             {isPix && invoice.pixPayload && (

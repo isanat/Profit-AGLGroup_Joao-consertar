@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { apiGet, apiPatch } from "@/lib/api";
 
 interface GatewayConfig {
-  nowpayments: { enabled: boolean; apiKeyConfigured: boolean; ipnSecretConfigured: boolean; baseUrl: string; priceCurrency: string; };
+  nowpayments: { enabled: boolean; apiKeyConfigured: boolean; ipnSecretConfigured: boolean; nowpayments2faSecretConfigured: boolean; baseUrl: string; priceCurrency: string; };
   mercadopago: { enabled: boolean; accessTokenConfigured: boolean; baseUrl: string; };
   partnerSplitEnabled: boolean;
 }
@@ -28,6 +28,7 @@ export function PaymentGatewaysContent({ embedded = false }: { embedded?: boolea
     nowpaymentsEnabled: false,
     nowpaymentsApiKey: "",
     nowpaymentsIpnSecret: "",
+    nowpayments2faSecret: "",
     nowpaymentsBaseUrl: "https://api.nowpayments.io/v1",
     nowpaymentsPriceCurrency: "BRL",
     mercadopagoEnabled: false,
@@ -69,6 +70,7 @@ export function PaymentGatewaysContent({ embedded = false }: { embedded?: boolea
       };
       if (form.nowpaymentsApiKey.trim()) body.nowpaymentsApiKey = form.nowpaymentsApiKey.trim();
       if (form.nowpaymentsIpnSecret.trim()) body.nowpaymentsIpnSecret = form.nowpaymentsIpnSecret.trim();
+      if (form.nowpayments2faSecret.trim()) body.nowpayments2faSecret = form.nowpayments2faSecret.trim();
       if (form.mercadopagoAccessToken.trim()) body.mercadopagoAccessToken = form.mercadopagoAccessToken.trim();
       if (form.mercadopagoWebhookSecret.trim()) body.mercadopagoWebhookSecret = form.mercadopagoWebhookSecret.trim();
 
@@ -76,7 +78,7 @@ export function PaymentGatewaysContent({ embedded = false }: { embedded?: boolea
       const refreshed = await apiGet<GatewayConfig>("/api/admin/payment-gateways");
       setConfig(refreshed);
       // Clear secret fields after save
-      setForm((f) => ({ ...f, nowpaymentsApiKey: "", nowpaymentsIpnSecret: "", mercadopagoAccessToken: "", mercadopagoWebhookSecret: "" }));
+      setForm((f) => ({ ...f, nowpaymentsApiKey: "", nowpaymentsIpnSecret: "", nowpayments2faSecret: "", mercadopagoAccessToken: "", mercadopagoWebhookSecret: "" }));
       toast.success("Configuração salva com sucesso");
     } catch (e: any) {
       toast.error(e?.message || "Erro ao salvar");
@@ -149,6 +151,10 @@ export function PaymentGatewaysContent({ embedded = false }: { embedded?: boolea
           </label>
           <Field label="API Key" value={form.nowpaymentsApiKey} onChange={(v) => setForm({ ...form, nowpaymentsApiKey: v })} placeholder={config?.nowpayments.apiKeyConfigured ? "•••••• (preenchido — digite para trocar)" : "Cole sua API Key do NowPayments"} type="password" />
           <Field label="IPN Secret" value={form.nowpaymentsIpnSecret} onChange={(v) => setForm({ ...form, nowpaymentsIpnSecret: v })} placeholder={config?.nowpayments.ipnSecretConfigured ? "•••••• (preenchido — digite para trocar)" : "IPN secret (Account → IPN secret)"} type="password" />
+          <Field label="2FA Secret (TOTP) — para auto-payout de sócios" value={form.nowpayments2faSecret} onChange={(v) => setForm({ ...form, nowpayments2faSecret: v })} placeholder={config?.nowpayments.nowpayments2faSecretConfigured ? "•••••• (preenchido — digite para trocar)" : "Secret do Google Authenticator (Settings → 2FA → secret)"} type="password" />
+          {form.nowpayments2faSecret && (
+            <p className="text-[10px] text-emerald-400">✓ Com o 2FA secret configurado, os payouts para sócios são verificados automaticamente (TOTP) — sem digitar código nem ler email.</p>
+          )}
           <div className="grid grid-cols-2 gap-3">
             <Field label="Base URL" value={form.nowpaymentsBaseUrl} onChange={(v) => setForm({ ...form, nowpaymentsBaseUrl: v })} />
             <Field label="Moeda do preço" value={form.nowpaymentsPriceCurrency} onChange={(v) => setForm({ ...form, nowpaymentsPriceCurrency: v })} placeholder="BRL" />
