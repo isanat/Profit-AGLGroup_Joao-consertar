@@ -107,11 +107,22 @@ router.get("/users/:id", async (req: AuthRequest, res) => {
 router.patch("/users/:id", async (req: AuthRequest, res) => {
   try {
     const id = parseInt(req.params.id);
-    const { name, status, role, balance } = req.body;
+    const { name, email, phone, country, status, role, balance } = req.body;
     const [before] = await db.select().from(usersTable).where(eq(usersTable.id, id));
     if (!before) { res.status(404).json({ error: "User not found" }); return; }
     const updates: any = {};
-    if (name !== undefined) updates.name = name;
+    if (name !== undefined) updates.name = String(name).trim();
+    if (email !== undefined) {
+      const newEmail = String(email).trim().toLowerCase();
+      if (newEmail && newEmail !== before.email) {
+        // Check uniqueness
+        const [conflict] = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.email, newEmail));
+        if (conflict && conflict.id !== id) { res.status(400).json({ error: "E-mail já está em uso por outro usuário" }); return; }
+        updates.email = newEmail;
+      }
+    }
+    if (phone !== undefined) updates.phone = phone ? String(phone).trim() : null;
+    if (country !== undefined) updates.country = country ? String(country).trim() : null;
     if (status !== undefined) updates.status = status;
     if (role !== undefined) updates.role = role;
     if (balance !== undefined) updates.balance = String(balance);
@@ -120,6 +131,58 @@ router.patch("/users/:id", async (req: AuthRequest, res) => {
     res.json(formatAdminUser(user));
   } catch (err) {
     req.log.error({ err }, "Admin update user error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// POST /admin/users/:id/reset-password — gera token de reset e retorna o link
+router.post("/users/:id/reset-password", async (req: AuthRequest, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const [user] = await db.select().from(usersTable).where(eq(usersTable.id, id));
+    if (!user) { res.status(404).json({ error: "User not found" }); return; }
+    const token = (await import("node:crypto")).randomBytes(32).toString("hex");
+    const expiry = new Date(Date.now() + 60 * 60 * 1000); // 1h
+    await db.update(usersTable)
+      .set({ passwordResetToken: token, passwordResetExpiry: expiry })
+      .where(eq(usersTable.id, id));
+    const domain = process.env.SITE_URL || `https://${req.headers.host || "flashymining.com"}`;
+    const resetLink = `${domain.replace(/\/+$/, "")}/reset-password?token=${token}`;
+    await auditLog({ userId: req.userId!, userEmail: user.email, action: "admin_reset_password", entityType: "user", entityId: id, metadata: { resetLink, expiresAt: expiry.toISOString() }, req });
+    res.json({ resetLink, expiresAt: expiry.toISOString(), message: "Link gerado. Envie ao usuário — expira em 1 hora." });
+  } catch (err) {
+    req.log.error({ err }, "Admin reset password error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// POST /admin/users/:id/adjust-balance — ajusta saldo com motivo (auditoria)
+router.post("/users/:id/adjust-balance", async (req: AuthRequest, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const { amount, reason } = req.body as { amount: number; reason?: string };
+    if (amount === undefined || isNaN(Number(amount))) { res.status(400).json({ error: "amount é obrigatório" }); return; }
+    const delta = Number(amount);
+    const [user] = await db.select().from(usersTable).where(eq(usersTable.id, id));
+    if (!user) { res.status(404).json({ error: "User not found" }); return; }
+    const balanceBefore = Number(user.balance);
+    const balanceAfter = parseFloat((balanceBefore + delta).toFixed(8));
+    if (balanceAfter < 0) { res.status(400).json({ error: "Saldo não pode ficar negativo" }); return; }
+    await db.update(usersTable).set({ balance: String(balanceAfter) }).where(eq(usersTable.id, id));
+    await db.insert(transactionsTable).values({
+      userId: id,
+      type: "adjustment",
+      amount: String(delta),
+      balanceBefore: String(balanceBefore),
+      balanceAfter: String(balanceAfter),
+      description: `Ajuste manual pelo admin — ${reason || "sem motivo informado"}`,
+      referenceId: req.userId,
+      referenceType: "admin_adjustment",
+    });
+    await auditLog({ userId: req.userId!, action: "adjust_user_balance", entityType: "user", entityId: id, previousValue: String(balanceBefore), newValue: String(balanceAfter), req });
+    res.json({ balanceBefore, balanceAfter, message: "Saldo ajustado" });
+  } catch (err) {
+    req.log.error({ err }, "Admin adjust balance error");
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -703,9 +766,7 @@ router.get("/referrals", async (req: AuthRequest, res) => {
 // GET /admin/password-resets
 router.get("/password-resets", async (req: AuthRequest, res) => {
   try {
-    const domain = process.env.REPLIT_DOMAINS
-      ? `https://${process.env.REPLIT_DOMAINS.split(",")[0]}`
-      : "http://localhost:80";
+    const domain = process.env.SITE_URL || `https://${req.headers.host || "flashymining.com"}`;
 
     const usersWithToken = await db
       .select({
