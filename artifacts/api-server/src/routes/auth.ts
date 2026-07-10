@@ -197,8 +197,8 @@ router.post("/forgot-password", async (req, res) => {
         .where(eq(usersTable.id, user.id));
 
       const domain = process.env.SITE_URL
-        : "http://localhost:80";
-      const resetLink = `${domain}/reset-password?token=${token}`;
+        || `https://${req.headers.host || "flashymining.com"}`;
+      const resetLink = `${domain.replace(/\/+$/, "")}/reset-password?token=${token}`;
 
       req.log.info({ userId: user.id, email: user.email, resetLink }, "Password reset token generated");
       await auditLog({ userId: user.id, userEmail: user.email, action: "forgot_password", entityType: "user", entityId: user.id, metadata: { resetLink, expiresAt: expiry.toISOString() }, req });
