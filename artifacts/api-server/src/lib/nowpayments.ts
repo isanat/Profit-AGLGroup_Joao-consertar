@@ -192,21 +192,28 @@ export async function getAvailableCurrencies(): Promise<{ code: string; label: s
       logger.error({ status: resp.status, body }, "NowPayments /merchant/coins failed");
       return [];
     }
-    // Resposta: { currencies: ["usdtbsc", "btc", ...] } (array de codes lowercase)
-    const codes: string[] = Array.isArray(body) ? body : (body.currencies || body.coins || []);
+    // Resposta: { selectedCurrencies: ["USDTBSC", "BTC", ...] } (array de codes MAIÚSCULO)
+    // (NowPayments usa "selectedCurrencies" — as moedas que o merchant habilitou no painel)
+    const codes: string[] = Array.isArray(body) ? body : (body.selectedCurrencies || body.currencies || body.coins || []);
     const labelMap: Record<string, { label: string; network: string }> = {
       btc: { label: "Bitcoin (BTC)", network: "Bitcoin" },
       usdttrc20: { label: "USDT (TRC20 / Tron)", network: "Tron" },
       usdtbsc: { label: "USDT (BEP20 / BSC)", network: "BSC" },
       usdterc20: { label: "USDT (ERC20 / Ethereum)", network: "Ethereum" },
+      usdtmatic: { label: "USDT (Polygon)", network: "Polygon" },
+      usdtsol: { label: "USDT (Solana)", network: "Solana" },
       usdc: { label: "USDC (ERC20)", network: "Ethereum" },
       usdcbsc: { label: "USDC (BEP20 / BSC)", network: "BSC" },
+      usdcmatic: { label: "USDC (Polygon)", network: "Polygon" },
       bnb: { label: "BNB (BEP20)", network: "BSC" },
       eth: { label: "Ethereum (ETH)", network: "Ethereum" },
       trx: { label: "Tron (TRX)", network: "Tron" },
       ltc: { label: "Litecoin (LTC)", network: "Litecoin" },
       doge: { label: "Dogecoin (DOGE)", network: "Dogecoin" },
       sol: { label: "Solana (SOL)", network: "Solana" },
+      matic: { label: "Polygon (MATIC)", network: "Polygon" },
+      xmr: { label: "Monero (XMR)", network: "Monero" },
+      xrp: { label: "Ripple (XRP)", network: "Ripple" },
     };
     // NO FALLBACK — só retorna as que o merchant habilitou E temos label
     return codes
