@@ -11,12 +11,16 @@ export interface SiteConfig {
 
 let _cache: SiteConfig | null = null;
 
+/** Limpa o cache do site-config (chamar após alterar nome/logo no admin) */
+export function clearSiteConfigCache(): void {
+  _cache = null;
+}
+
 export function useSiteConfig() {
   const [config, setConfig] = useState<SiteConfig | null>(_cache);
   const [loading, setLoading] = useState(!_cache);
 
-  useEffect(() => {
-    if (_cache) return;
+  const reload = () => {
     fetch("/api/site-config")
       .then((r) => r.json())
       .then((data) => {
@@ -37,9 +41,14 @@ export function useSiteConfig() {
         setConfig(fallback);
         setLoading(false);
       });
+  };
+
+  useEffect(() => {
+    if (_cache) return;
+    reload();
   }, []);
 
-  return { config, loading };
+  return { config, loading, reload };
 }
 
 export function getSiteConfig(): SiteConfig | null {

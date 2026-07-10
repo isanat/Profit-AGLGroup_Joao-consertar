@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useGetAdminSettings, useUpdateAdminSettings, getGetAdminSettingsQueryKey } from "@workspace/api-client-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
+import { apiPost } from "@/lib/api";
+import { clearSiteConfigCache } from "@/lib/site-config";
 
 export function GeneralSettingsContent({ embedded = false }: { embedded?: boolean }) {
   const queryClient = useQueryClient();
@@ -13,12 +15,52 @@ export function GeneralSettingsContent({ embedded = false }: { embedded?: boolea
   const updateSettings = useUpdateAdminSettings();
 
   const [formData, setFormData] = useState<any>({});
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
 
   useEffect(() => {
     if (settings) {
       setFormData(settings);
     }
   }, [settings]);
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 500 * 1024) {
+      toast.error("Arquivo muito grande. Máximo 500KB.");
+      return;
+    }
+    setUploadingLogo(true);
+    try {
+      // Converter para base64 data URL
+      const reader = new FileReader();
+      reader.onload = async () => {
+        const dataUrl = reader.result as string;
+        setLogoPreview(dataUrl);
+        // Enviar para o backend
+        try {
+          const result = await apiPost<{ siteLogoUrl: string }>("/api/admin/settings/upload-logo", { image: dataUrl });
+          field("siteLogoUrl", result.siteLogoUrl);
+          // Limpar cache do site-config no frontend
+          toast.success("Logo enviada com sucesso! Salve as configurações.");
+        } catch (err: any) {
+          toast.error(err?.message || "Erro ao enviar logo");
+          setLogoPreview(null);
+        } finally {
+          setUploadingLogo(false);
+        }
+      };
+      reader.onerror = () => {
+        toast.error("Erro ao ler arquivo");
+        setUploadingLogo(false);
+      };
+      reader.readAsDataURL(file);
+    } catch (err: any) {
+      toast.error(err?.message || "Erro no upload");
+      setUploadingLogo(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -35,6 +77,7 @@ export function GeneralSettingsContent({ embedded = false }: { embedded?: boolea
         onSuccess: () => {
           toast.success("Configurações atualizadas com sucesso");
           queryClient.invalidateQueries({ queryKey: getGetAdminSettingsQueryKey() });
+          clearSiteConfigCache(); // Limpar cache para que nome/logo atualizem no header/sidebar
         },
         onError: (err: any) => toast.error(err?.data?.error || err?.message || "Erro ao atualizar configurações"),
       },
@@ -196,13 +239,63 @@ export function GeneralSettingsContent({ embedded = false }: { embedded?: boolea
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">URL da logo</label>
+                <label className="text-sm font-medium">URL da logo (opcional)</label>
                 <Input
                   value={formData.siteLogoUrl ?? ""}
                   onChange={(e) => field("siteLogoUrl", e.target.value)}
                   placeholder="/logo.png"
                 />
-                <p className="text-xs text-muted-foreground">Caminho da imagem (ex: /logo.png ou URL completa)</p>
+                <p className="text-xs text-muted-foreground">Pode usar upload abaixo ou digitar uma URL</p>
+              </div>
+            </div>
+            {/* Upload de logo */}
+            <div className="flex items-center gap-4 p-3 rounded-lg" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)" }}>
+              <div
+                style={{
+                  width: "48px",
+                  height: "48px",
+                  borderRadius: "8px",
+                  background: "#0B1120",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                  border: "1px solid rgba(255,255,255,0.1)",
+                  overflow: "hidden",
+                }}
+              >
+                <img
+                  src={logoPreview || formData.siteLogoUrl || "/logo.png"}
+                  alt="Preview"
+                  style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }}
+                  onError={(e) => { (e.target as HTMLImageElement).src = "/logo.png"; }}
+                />
+              </div>
+              <div className="flex-1">
+                <p className="text-xs font-medium mb-1">Fazer upload da logo</p>
+                <p className="text-[10px] text-muted-foreground mb-2">PNG, JPG ou SVG. Máx 500KB. Recomendado: 200x200px.</p>
+                <div className="flex gap-2">
+                  <label className="cursor-pointer">
+                    <span className="inline-flex items-center justify-center px-3 py-1.5 text-xs font-medium rounded-md border border-amber-500/30 text-amber-400 hover:bg-amber-500/10 transition-colors">
+                      📁 Escolher arquivo
+                    </span>
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg,image/svg+xml,image/webp"
+                      className="hidden"
+                      onChange={handleLogoUpload}
+                    />
+                  </label>
+                  {uploadingLogo && <span className="text-xs text-muted-foreground self-center">Enviando...</span>}
+                  {logoPreview && !uploadingLogo && (
+                    <button
+                      onClick={() => { setLogoPreview(null); field("siteLogoUrl", "/logo.png"); }}
+                      className="text-xs text-red-400 hover:text-red-300 self-center"
+                    >
+                      Remover
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           </div>

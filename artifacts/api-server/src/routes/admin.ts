@@ -510,6 +510,29 @@ router.patch("/settings", async (req: AuthRequest, res) => {
   }
 });
 
+// POST /admin/settings/upload-logo — upload de logo como data URL (base64)
+// Aceita { image: "data:image/png;base64,..." } e salva em siteLogoUrl
+router.post("/settings/upload-logo", async (req: AuthRequest, res) => {
+  try {
+    const { image } = req.body as { image?: string };
+    if (!image || !image.startsWith("data:image/")) {
+      res.status(400).json({ error: "Imagem inválida. Envie uma data URL (data:image/...)." });
+      return;
+    }
+    // Validar tamanho (max 500KB em base64 ≈ 670KB de string)
+    if (image.length > 700000) {
+      res.status(400).json({ error: "Imagem muito grande. Máximo 500KB. Reduza o tamanho." });
+      return;
+    }
+    await setSetting("siteLogoUrl", image);
+    await auditLog({ userId: req.userId!, action: "upload_logo", entityType: "settings", req });
+    res.json({ siteLogoUrl: image, message: "Logo atualizada com sucesso" });
+  } catch (err) {
+    req.log.error({ err }, "Admin upload logo error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 // ─── Payment gateway status (detailed, admin-only) ────────────────────────────
 router.get("/payment-gateways", async (req: AuthRequest, res) => {
   try {
