@@ -185,8 +185,8 @@ async function seed() {
         const d = new Date(now);
         d.setMonth(d.getMonth() - i);
         const progress = (11 - i) / 11;
-        const val = basePrice + (Number(strat.sharePrice) - basePrice) * progress * (1 + (Math.random() * 0.1 - 0.05));
-        const monthYield = i === 0 ? Number(strat.monthlyReturnPct) : (Math.random() * 3 + 0.5);
+        const val = basePrice + (Number(strat.sharePrice) - basePrice) * progress;
+        const monthYield = Number(strat.monthlyReturnPct) || 1;
         await db.insert(strategyPerformanceTable).values({
           strategyId: s.id,
           date: d.toISOString().slice(0, 10),

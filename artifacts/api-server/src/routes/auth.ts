@@ -196,8 +196,7 @@ router.post("/forgot-password", async (req, res) => {
         .set({ passwordResetToken: token, passwordResetExpiry: expiry })
         .where(eq(usersTable.id, user.id));
 
-      const domain = process.env.REPLIT_DOMAINS
-        ? `https://${process.env.REPLIT_DOMAINS.split(",")[0]}`
+      const domain = process.env.SITE_URL
         : "http://localhost:80";
       const resetLink = `${domain}/reset-password?token=${token}`;
 
