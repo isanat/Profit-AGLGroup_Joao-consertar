@@ -1,0 +1,2451 @@
+openapi: 3.1.0
+info:
+  title: Api
+  version: 0.1.0
+  description: InvestFlow Investment Management Platform API
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+  - name: auth
+  - name: users
+  - name: dashboard
+  - name: strategies
+  - name: positions
+  - name: deposits
+  - name: withdrawals
+  - name: transactions
+  - name: referrals
+  - name: notifications
+  - name: admin
+
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  # AUTH
+  /auth/register:
+    post:
+      operationId: register
+      tags: [auth]
+      summary: Register new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterInput"
+      responses:
+        "201":
+          description: User created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginInput"
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      summary: Logout
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Logged out
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /auth/refresh:
+    post:
+      operationId: refreshToken
+      tags: [auth]
+      summary: Refresh access token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefreshTokenInput"
+      responses:
+        "200":
+          description: Token refreshed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+
+  /auth/forgot-password:
+    post:
+      operationId: forgotPassword
+      tags: [auth]
+      summary: Request password reset
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ForgotPasswordInput"
+      responses:
+        "200":
+          description: Email sent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /auth/reset-password:
+    post:
+      operationId: resetPassword
+      tags: [auth]
+      summary: Reset password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ResetPasswordInput"
+      responses:
+        "200":
+          description: Password reset
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /auth/verify-email:
+    post:
+      operationId: verifyEmail
+      tags: [auth]
+      summary: Verify email
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VerifyEmailInput"
+      responses:
+        "200":
+          description: Email verified
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /auth/enable-2fa:
+    post:
+      operationId: enable2fa
+      tags: [auth]
+      summary: Enable 2FA
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: 2FA setup data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TwoFactorSetup"
+
+  /auth/verify-2fa:
+    post:
+      operationId: verify2fa
+      tags: [auth]
+      summary: Verify 2FA code
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TwoFactorVerifyInput"
+      responses:
+        "200":
+          description: 2FA verified
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  # USERS / PROFILE
+  /users/me:
+    get:
+      operationId: getMe
+      tags: [users]
+      summary: Get current user profile
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+
+    patch:
+      operationId: updateMe
+      tags: [users]
+      summary: Update current user profile
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserProfileUpdate"
+      responses:
+        "200":
+          description: Updated profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+
+  /users/me/change-password:
+    post:
+      operationId: changePassword
+      tags: [users]
+      summary: Change password
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChangePasswordInput"
+      responses:
+        "200":
+          description: Password changed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /users/me/sessions:
+    get:
+      operationId: getMySessions
+      tags: [users]
+      summary: Get active sessions
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Sessions list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Session"
+
+  # DASHBOARD
+  /dashboard/summary:
+    get:
+      operationId: getDashboardSummary
+      tags: [dashboard]
+      summary: Get dashboard summary stats
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Dashboard summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummary"
+
+  /dashboard/performance:
+    get:
+      operationId: getDashboardPerformance
+      tags: [dashboard]
+      summary: Get portfolio performance history
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: period
+          schema:
+            type: string
+            enum: [7d, 30d, 90d, 1y, all]
+            default: 30d
+      responses:
+        "200":
+          description: Performance history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PerformancePoint"
+
+  /dashboard/recent-activity:
+    get:
+      operationId: getRecentActivity
+      tags: [dashboard]
+      summary: Get recent activity feed
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Recent activity
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ActivityItem"
+
+  # STRATEGIES
+  /strategies:
+    get:
+      operationId: listStrategies
+      tags: [strategies]
+      summary: List all available strategies
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [active, paused, closed]
+        - in: query
+          name: riskLevel
+          schema:
+            type: string
+            enum: [low, medium, high]
+        - in: query
+          name: category
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Strategies list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Strategy"
+
+  /strategies/{id}:
+    get:
+      operationId: getStrategy
+      tags: [strategies]
+      summary: Get strategy details
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Strategy details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StrategyDetail"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /strategies/{id}/performance:
+    get:
+      operationId: fetchStrategyPerformance
+      tags: [strategies]
+      summary: Get strategy performance history
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Performance history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PerformancePoint"
+
+  # POSITIONS (COTAS)
+  /positions:
+    get:
+      operationId: listPositions
+      tags: [positions]
+      summary: List my positions (cotas)
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Positions list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Position"
+
+    post:
+      operationId: buyPosition
+      tags: [positions]
+      summary: Buy strategy position (cota)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PositionInput"
+      responses:
+        "201":
+          description: Position created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Position"
+        "400":
+          description: Insufficient balance or invalid amount
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /positions/{id}:
+    get:
+      operationId: getPosition
+      tags: [positions]
+      summary: Get position details
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Position details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Position"
+
+  /positions/summary:
+    get:
+      operationId: getPositionsSummary
+      tags: [positions]
+      summary: Get positions summary by strategy
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Positions summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PositionsSummary"
+
+  # DEPOSITS
+  /deposits:
+    get:
+      operationId: listDeposits
+      tags: [deposits]
+      summary: List my deposits
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [pending, confirmed, failed, cancelled]
+        - in: query
+          name: method
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Deposits list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Deposit"
+
+    post:
+      operationId: createDeposit
+      tags: [deposits]
+      summary: Create deposit request
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DepositInput"
+      responses:
+        "201":
+          description: Deposit created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Deposit"
+
+  /deposits/{id}:
+    get:
+      operationId: getDeposit
+      tags: [deposits]
+      summary: Get deposit details
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deposit details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Deposit"
+
+  /deposits/methods:
+    get:
+      operationId: getDepositMethods
+      tags: [deposits]
+      summary: Get available deposit methods and wallet addresses
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Deposit methods
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DepositMethod"
+
+  # WITHDRAWALS
+  /withdrawals:
+    get:
+      operationId: listWithdrawals
+      tags: [withdrawals]
+      summary: List my withdrawals
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [pending, approved, processing, completed, rejected]
+      responses:
+        "200":
+          description: Withdrawals list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Withdrawal"
+
+    post:
+      operationId: requestWithdrawal
+      tags: [withdrawals]
+      summary: Request withdrawal
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WithdrawalInput"
+      responses:
+        "201":
+          description: Withdrawal requested
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Withdrawal"
+        "400":
+          description: Insufficient balance
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /withdrawals/{id}:
+    get:
+      operationId: getWithdrawal
+      tags: [withdrawals]
+      summary: Get withdrawal details
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Withdrawal details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Withdrawal"
+
+  # TRANSACTIONS / EXTRATO
+  /transactions:
+    get:
+      operationId: listTransactions
+      tags: [transactions]
+      summary: List all transactions (extrato)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: type
+          schema:
+            type: string
+            enum: [deposit, withdrawal, position_buy, yield_credit, commission, adjustment]
+        - in: query
+          name: startDate
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: endDate
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: Transactions list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TransactionPage"
+
+  # REFERRALS
+  /referrals:
+    get:
+      operationId: getReferralInfo
+      tags: [referrals]
+      summary: Get referral program info and my referrals
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Referral info
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReferralInfo"
+
+  /referrals/tree:
+    get:
+      operationId: getReferralTree
+      tags: [referrals]
+      summary: Get referral tree visualization data
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Referral tree
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReferralTree"
+
+  /referrals/commissions:
+    get:
+      operationId: listCommissions
+      tags: [referrals]
+      summary: List commissions earned
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Commissions list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Commission"
+
+  # NOTIFICATIONS
+  /notifications:
+    get:
+      operationId: listNotifications
+      tags: [notifications]
+      summary: List notifications
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: unreadOnly
+          schema:
+            type: boolean
+      responses:
+        "200":
+          description: Notifications list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Notification"
+
+  /notifications/{id}/read:
+    patch:
+      operationId: markNotificationRead
+      tags: [notifications]
+      summary: Mark notification as read
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Marked as read
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Notification"
+
+  /notifications/read-all:
+    post:
+      operationId: markAllNotificationsRead
+      tags: [notifications]
+      summary: Mark all notifications as read
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: All marked as read
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  # ADMIN
+  /admin/dashboard:
+    get:
+      operationId: getAdminDashboard
+      tags: [admin]
+      summary: Admin dashboard stats
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Admin stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminDashboard"
+
+  /admin/users:
+    get:
+      operationId: adminListUsers
+      tags: [admin]
+      summary: List all users
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: search
+          schema:
+            type: string
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [active, suspended, pending]
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: Users page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserPage"
+
+  /admin/users/{id}:
+    get:
+      operationId: adminGetUser
+      tags: [admin]
+      summary: Get user details
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: User details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminUser"
+
+    patch:
+      operationId: adminUpdateUser
+      tags: [admin]
+      summary: Update user
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminUserUpdate"
+      responses:
+        "200":
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminUser"
+
+  /admin/strategies:
+    get:
+      operationId: adminListStrategies
+      tags: [admin]
+      summary: Admin list strategies
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Strategies
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Strategy"
+
+    post:
+      operationId: adminCreateStrategy
+      tags: [admin]
+      summary: Create strategy
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StrategyInput"
+      responses:
+        "201":
+          description: Created strategy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Strategy"
+
+  /admin/strategies/{id}:
+    patch:
+      operationId: adminUpdateStrategy
+      tags: [admin]
+      summary: Update strategy
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StrategyUpdate"
+      responses:
+        "200":
+          description: Updated strategy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Strategy"
+
+    delete:
+      operationId: adminDeleteStrategy
+      tags: [admin]
+      summary: Delete strategy
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /admin/strategies/{id}/yield:
+    post:
+      operationId: adminApplyYield
+      tags: [admin]
+      summary: Apply yield/rentabilidade to a strategy
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/YieldInput"
+      responses:
+        "200":
+          description: Yield applied
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /admin/deposits:
+    get:
+      operationId: adminListDeposits
+      tags: [admin]
+      summary: Admin list all deposits
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+      responses:
+        "200":
+          description: Deposits
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DepositPage"
+
+  /admin/deposits/{id}/confirm:
+    post:
+      operationId: adminConfirmDeposit
+      tags: [admin]
+      summary: Confirm deposit
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConfirmDepositInput"
+      responses:
+        "200":
+          description: Confirmed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Deposit"
+
+  /admin/withdrawals:
+    get:
+      operationId: adminListWithdrawals
+      tags: [admin]
+      summary: Admin list all withdrawals
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+      responses:
+        "200":
+          description: Withdrawals
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WithdrawalPage"
+
+  /admin/withdrawals/{id}/approve:
+    post:
+      operationId: adminApproveWithdrawal
+      tags: [admin]
+      summary: Approve or reject withdrawal
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ApproveWithdrawalInput"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Withdrawal"
+
+  /admin/settings:
+    get:
+      operationId: getAdminSettings
+      tags: [admin]
+      summary: Get platform settings
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlatformSettings"
+
+    patch:
+      operationId: updateAdminSettings
+      tags: [admin]
+      summary: Update platform settings
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlatformSettingsUpdate"
+      responses:
+        "200":
+          description: Updated settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlatformSettings"
+
+  /admin/audit-logs:
+    get:
+      operationId: getAuditLogs
+      tags: [admin]
+      summary: Get audit logs
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: userId
+          schema:
+            type: integer
+        - in: query
+          name: action
+          schema:
+            type: string
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: Audit logs
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuditLogPage"
+
+  /admin/wallets:
+    get:
+      operationId: adminListWallets
+      tags: [admin]
+      summary: Admin list platform wallets
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Wallets
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PlatformWallet"
+
+    post:
+      operationId: adminCreateWallet
+      tags: [admin]
+      summary: Create platform wallet
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WalletInput"
+      responses:
+        "201":
+          description: Created wallet
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlatformWallet"
+
+  /admin/notifications/broadcast:
+    post:
+      operationId: adminBroadcastNotification
+      tags: [admin]
+      summary: Broadcast notification to users
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BroadcastNotificationInput"
+      responses:
+        "200":
+          description: Sent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /admin/daily-profit/settings:
+    get:
+      operationId: adminGetDailyProfitSettings
+      tags: [admin]
+      summary: Get daily profit settings
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DailyProfitSettings"
+    post:
+      operationId: adminSaveDailyProfitSettings
+      tags: [admin]
+      summary: Save daily profit settings
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DailyProfitSettingsInput"
+      responses:
+        "200":
+          description: Saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DailyProfitSettings"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/daily-profit/execute:
+    post:
+      operationId: adminExecuteDailyProfit
+      tags: [admin]
+      summary: Manually execute daily profit distribution
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Execution result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DailyProfitExecuteResult"
+
+  /admin/daily-profit/history:
+    get:
+      operationId: adminGetDailyProfitHistory
+      tags: [admin]
+      summary: Get daily profit distribution history
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+        - in: query
+          name: limit
+          schema:
+            type: integer
+        - in: query
+          name: dateFrom
+          schema:
+            type: string
+        - in: query
+          name: dateTo
+          schema:
+            type: string
+      responses:
+        "200":
+          description: History
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DailyProfitHistoryPage"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    MessageResponse:
+      type: object
+      properties:
+        message:
+          type: string
+      required:
+        - message
+
+    # AUTH SCHEMAS
+    RegisterInput:
+      type: object
+      required: [name, email, password, confirmPassword]
+      properties:
+        name:
+          type: string
+          minLength: 2
+        email:
+          type: string
+          format: email
+        phone:
+          type: ["string", "null"]
+        country:
+          type: ["string", "null"]
+        password:
+          type: string
+          minLength: 8
+        confirmPassword:
+          type: string
+        referralCode:
+          type: ["string", "null"]
+
+    LoginInput:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+        twoFactorCode:
+          type: ["string", "null"]
+
+    RefreshTokenInput:
+      type: object
+      required: [refreshToken]
+      properties:
+        refreshToken:
+          type: string
+
+    ForgotPasswordInput:
+      type: object
+      required: [email]
+      properties:
+        email:
+          type: string
+          format: email
+
+    ResetPasswordInput:
+      type: object
+      required: [token, password, confirmPassword]
+      properties:
+        token:
+          type: string
+        password:
+          type: string
+          minLength: 8
+        confirmPassword:
+          type: string
+
+    VerifyEmailInput:
+      type: object
+      required: [token]
+      properties:
+        token:
+          type: string
+
+    TwoFactorSetup:
+      type: object
+      properties:
+        secret:
+          type: string
+        qrCodeUrl:
+          type: string
+        backupCodes:
+          type: array
+          items:
+            type: string
+      required: [secret, qrCodeUrl, backupCodes]
+
+    TwoFactorVerifyInput:
+      type: object
+      required: [code]
+      properties:
+        code:
+          type: string
+
+    AuthResponse:
+      type: object
+      properties:
+        accessToken:
+          type: string
+        refreshToken:
+          type: string
+        user:
+          $ref: "#/components/schemas/UserProfile"
+      required: [accessToken, refreshToken, user]
+
+    # USER SCHEMAS
+    UserProfile:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+        phone:
+          type: ["string", "null"]
+        country:
+          type: ["string", "null"]
+        avatarUrl:
+          type: ["string", "null"]
+        role:
+          type: string
+          enum: [user, admin]
+        status:
+          type: string
+          enum: [active, suspended, pending]
+        emailVerified:
+          type: boolean
+        twoFactorEnabled:
+          type: boolean
+        referralCode:
+          type: string
+        balance:
+          type: number
+        totalInvested:
+          type: number
+        totalYield:
+          type: number
+        createdAt:
+          type: string
+          format: date-time
+        btcWallet:
+          type: ["string", "null"]
+        usdtWallet:
+          type: ["string", "null"]
+        usdcWallet:
+          type: ["string", "null"]
+        pixKeyType:
+          type: ["string", "null"]
+        pixKey:
+          type: ["string", "null"]
+        pixBankName:
+          type: ["string", "null"]
+      required: [id, name, email, role, status, emailVerified, twoFactorEnabled, referralCode, balance, totalInvested, totalYield, createdAt]
+
+    UserProfileUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        phone:
+          type: ["string", "null"]
+        country:
+          type: ["string", "null"]
+        avatarUrl:
+          type: ["string", "null"]
+        btcWallet:
+          type: ["string", "null"]
+        usdtWallet:
+          type: ["string", "null"]
+        usdcWallet:
+          type: ["string", "null"]
+        pixKeyType:
+          type: ["string", "null"]
+        pixKey:
+          type: ["string", "null"]
+        pixBankName:
+          type: ["string", "null"]
+
+    ChangePasswordInput:
+      type: object
+      required: [currentPassword, newPassword, confirmPassword]
+      properties:
+        currentPassword:
+          type: string
+        newPassword:
+          type: string
+          minLength: 8
+        confirmPassword:
+          type: string
+
+    Session:
+      type: object
+      properties:
+        id:
+          type: integer
+        ipAddress:
+          type: ["string", "null"]
+        userAgent:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+        lastUsedAt:
+          type: string
+          format: date-time
+        isCurrent:
+          type: boolean
+      required: [id, createdAt, lastUsedAt, isCurrent]
+
+    # DASHBOARD SCHEMAS
+    DashboardSummary:
+      type: object
+      properties:
+        balance:
+          type: number
+        totalInvested:
+          type: number
+        totalYield:
+          type: number
+        yieldPercentage:
+          type: number
+        activePositions:
+          type: integer
+        totalShares:
+          type: number
+        pendingDeposits:
+          type: number
+        pendingWithdrawals:
+          type: number
+        referralCount:
+          type: integer
+        commissionEarned:
+          type: number
+      required: [balance, totalInvested, totalYield, yieldPercentage, activePositions, totalShares, pendingDeposits, pendingWithdrawals, referralCount, commissionEarned]
+
+    PerformancePoint:
+      type: object
+      properties:
+        date:
+          type: string
+          format: date
+        value:
+          type: number
+        yield:
+          type: number
+        yieldPercentage:
+          type: number
+      required: [date, value, yield, yieldPercentage]
+
+    ActivityItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        type:
+          type: string
+        description:
+          type: string
+        amount:
+          type: ["number", "null"]
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, type, description, createdAt]
+
+    # STRATEGY SCHEMAS
+    Strategy:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+        riskLevel:
+          type: string
+          enum: [low, medium, high]
+        category:
+          type: string
+        minInvestment:
+          type: number
+        totalShares:
+          type: integer
+        availableShares:
+          type: integer
+        sharePrice:
+          type: number
+        aum:
+          type: number
+        maxDrawdown:
+          type: number
+        totalReturnPct:
+          type: number
+        monthlyReturnPct:
+          type: number
+        dailyProfitPercent:
+          type: number
+        maxReturnPct:
+          type: number
+        durationDays:
+          type: integer
+        status:
+          type: string
+          enum: [active, paused, closed]
+        startDate:
+          type: string
+          format: date
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, name, description, riskLevel, category, minInvestment, totalShares, availableShares, sharePrice, aum, maxDrawdown, totalReturnPct, monthlyReturnPct, dailyProfitPercent, maxReturnPct, durationDays, status, startDate, createdAt]
+
+    StrategyDetail:
+      allOf:
+        - $ref: "#/components/schemas/Strategy"
+        - type: object
+          properties:
+            performanceHistory:
+              type: array
+              items:
+                $ref: "#/components/schemas/PerformancePoint"
+            userPosition:
+              $ref: "#/components/schemas/Position"
+          required: [performanceHistory]
+
+    StrategyInput:
+      type: object
+      required: [name, description, riskLevel, category, minInvestment, totalShares, sharePrice]
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        riskLevel:
+          type: string
+          enum: [low, medium, high]
+        category:
+          type: string
+        minInvestment:
+          type: number
+        totalShares:
+          type: integer
+        sharePrice:
+          type: number
+        maxDrawdown:
+          type: number
+        startDate:
+          type: string
+          format: date
+        status:
+          type: string
+          enum: [active, paused, closed]
+
+    StrategyUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        riskLevel:
+          type: string
+          enum: [low, medium, high]
+        category:
+          type: string
+        minInvestment:
+          type: number
+        sharePrice:
+          type: number
+        maxDrawdown:
+          type: number
+        status:
+          type: string
+          enum: [active, paused, closed]
+
+    YieldInput:
+      type: object
+      required: [yieldPercentage, description]
+      properties:
+        yieldPercentage:
+          type: number
+          description: Percentage yield to apply (e.g. 2.5 for 2.5%)
+        description:
+          type: string
+        effectiveDate:
+          type: string
+          format: date
+
+    # POSITION SCHEMAS
+    Position:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        strategyId:
+          type: integer
+        strategyName:
+          type: string
+        shares:
+          type: number
+        purchasePrice:
+          type: number
+        currentValue:
+          type: number
+        investedAmount:
+          type: number
+        yieldAmount:
+          type: number
+        yieldPercentage:
+          type: number
+        status:
+          type: string
+          enum: [active, closed]
+        purchasedAt:
+          type: string
+          format: date-time
+      required: [id, userId, strategyId, strategyName, shares, purchasePrice, currentValue, investedAmount, yieldAmount, yieldPercentage, status, purchasedAt]
+
+    PositionInput:
+      type: object
+      required: [strategyId, amount]
+      properties:
+        strategyId:
+          type: integer
+        amount:
+          type: number
+          minimum: 0.01
+
+    PositionsSummary:
+      type: object
+      properties:
+        totalInvested:
+          type: number
+        totalCurrentValue:
+          type: number
+        totalYield:
+          type: number
+        totalYieldPercentage:
+          type: number
+        byStrategy:
+          type: array
+          items:
+            $ref: "#/components/schemas/Position"
+      required: [totalInvested, totalCurrentValue, totalYield, totalYieldPercentage, byStrategy]
+
+    # DEPOSIT SCHEMAS
+    Deposit:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        method:
+          type: string
+          enum: [pix, usdt_bep20, bitcoin, usdc, bnb]
+        amount:
+          type: number
+        status:
+          type: string
+          enum: [pending, confirmed, failed, cancelled]
+        walletAddress:
+          type: ["string", "null"]
+        transactionHash:
+          type: ["string", "null"]
+        qrCodeUrl:
+          type: ["string", "null"]
+        confirmedAt:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, userId, method, amount, status, createdAt]
+
+    DepositInput:
+      type: object
+      required: [method, amount]
+      properties:
+        method:
+          type: string
+          enum: [pix, usdt_bep20, bitcoin, usdc, bnb]
+        amount:
+          type: number
+          minimum: 1
+
+    DepositMethod:
+      type: object
+      properties:
+        method:
+          type: string
+        label:
+          type: string
+        walletAddress:
+          type: ["string", "null"]
+        qrCodeUrl:
+          type: ["string", "null"]
+        instructions:
+          type: string
+        minAmount:
+          type: number
+        isActive:
+          type: boolean
+      required: [method, label, instructions, minAmount, isActive]
+
+    ConfirmDepositInput:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [confirmed, failed, cancelled]
+        transactionHash:
+          type: ["string", "null"]
+        notes:
+          type: ["string", "null"]
+
+    DepositPage:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Deposit"
+        total:
+          type: integer
+        page:
+          type: integer
+        totalPages:
+          type: integer
+      required: [data, total, page, totalPages]
+
+    # WITHDRAWAL SCHEMAS
+    Withdrawal:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        method:
+          type: string
+        amount:
+          type: number
+        fee:
+          type: number
+        netAmount:
+          type: number
+        walletAddress:
+          type: string
+        status:
+          type: string
+          enum: [pending, approved, processing, completed, rejected]
+        transactionHash:
+          type: ["string", "null"]
+        rejectionReason:
+          type: ["string", "null"]
+        processedAt:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, userId, method, amount, fee, netAmount, walletAddress, status, createdAt]
+
+    WithdrawalInput:
+      type: object
+      required: [amount, method, walletAddress]
+      properties:
+        amount:
+          type: number
+          minimum: 1
+        method:
+          type: string
+          enum: [pix, usdt_bep20, bitcoin, usdc, bnb]
+        walletAddress:
+          type: string
+
+    ApproveWithdrawalInput:
+      type: object
+      required: [action]
+      properties:
+        action:
+          type: string
+          enum: [approve, reject]
+        transactionHash:
+          type: ["string", "null"]
+        rejectionReason:
+          type: ["string", "null"]
+
+    WithdrawalPage:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Withdrawal"
+        total:
+          type: integer
+        page:
+          type: integer
+        totalPages:
+          type: integer
+      required: [data, total, page, totalPages]
+
+    # TRANSACTION SCHEMAS
+    Transaction:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        type:
+          type: string
+          enum: [deposit, withdrawal, position_buy, yield_credit, commission, adjustment]
+        amount:
+          type: number
+        balanceBefore:
+          type: number
+        balanceAfter:
+          type: number
+        description:
+          type: string
+        referenceId:
+          type: ["integer", "null"]
+        referenceType:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, userId, type, amount, balanceBefore, balanceAfter, description, createdAt]
+
+    TransactionPage:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Transaction"
+        total:
+          type: integer
+        page:
+          type: integer
+        totalPages:
+          type: integer
+      required: [data, total, page, totalPages]
+
+    # REFERRAL SCHEMAS
+    ReferralInfo:
+      type: object
+      properties:
+        referralCode:
+          type: string
+        referralLink:
+          type: string
+        totalReferrals:
+          type: integer
+        activeReferrals:
+          type: integer
+        totalCommissionEarned:
+          type: number
+        pendingCommission:
+          type: number
+        commissionRate:
+          type: number
+        referrals:
+          type: array
+          items:
+            $ref: "#/components/schemas/ReferralMember"
+      required: [referralCode, referralLink, totalReferrals, activeReferrals, totalCommissionEarned, pendingCommission, commissionRate, referrals]
+
+    ReferralMember:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+        status:
+          type: string
+        totalInvested:
+          type: number
+        commissionGenerated:
+          type: number
+        joinedAt:
+          type: string
+          format: date-time
+      required: [id, name, email, status, totalInvested, commissionGenerated, joinedAt]
+
+    ReferralTree:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+        level:
+          type: integer
+        children:
+          type: array
+          items:
+            $ref: "#/components/schemas/ReferralTree"
+      required: [id, name, email, level, children]
+
+    Commission:
+      type: object
+      properties:
+        id:
+          type: integer
+        fromUserId:
+          type: integer
+        fromUserName:
+          type: string
+        amount:
+          type: number
+        rate:
+          type: number
+        level:
+          type: integer
+        status:
+          type: string
+          enum: [pending, paid]
+        paidAt:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, fromUserId, fromUserName, amount, rate, level, status, createdAt]
+
+    # NOTIFICATION SCHEMAS
+    Notification:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        title:
+          type: string
+        message:
+          type: string
+        type:
+          type: string
+          enum: [info, success, warning, error]
+        isRead:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, userId, title, message, type, isRead, createdAt]
+
+    # ADMIN SCHEMAS
+    AdminDashboard:
+      type: object
+      properties:
+        totalUsers:
+          type: integer
+        activeUsers:
+          type: integer
+        newUsersToday:
+          type: integer
+        totalVolume:
+          type: number
+        totalInvested:
+          type: number
+        totalWithdrawn:
+          type: number
+        totalSharesSold:
+          type: number
+        commissionsPaid:
+          type: number
+        platformRevenue:
+          type: number
+        pendingDeposits:
+          type: integer
+        pendingWithdrawals:
+          type: integer
+        revenueByMonth:
+          type: array
+          items:
+            $ref: "#/components/schemas/PerformancePoint"
+      required: [totalUsers, activeUsers, newUsersToday, totalVolume, totalInvested, totalWithdrawn, totalSharesSold, commissionsPaid, platformRevenue, pendingDeposits, pendingWithdrawals, revenueByMonth]
+
+    AdminUser:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+        phone:
+          type: ["string", "null"]
+        country:
+          type: ["string", "null"]
+        role:
+          type: string
+        status:
+          type: string
+        emailVerified:
+          type: boolean
+        twoFactorEnabled:
+          type: boolean
+        balance:
+          type: number
+        totalInvested:
+          type: number
+        totalYield:
+          type: number
+        referralCode:
+          type: string
+        referredBy:
+          type: ["integer", "null"]
+        createdAt:
+          type: string
+          format: date-time
+        lastLoginAt:
+          type: ["string", "null"]
+      required: [id, name, email, role, status, emailVerified, twoFactorEnabled, balance, totalInvested, totalYield, referralCode, createdAt]
+
+    AdminUserUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        status:
+          type: string
+          enum: [active, suspended, pending]
+        role:
+          type: string
+          enum: [user, admin]
+        balance:
+          type: number
+
+    UserPage:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminUser"
+        total:
+          type: integer
+        page:
+          type: integer
+        totalPages:
+          type: integer
+      required: [data, total, page, totalPages]
+
+    PlatformSettings:
+      type: object
+      properties:
+        withdrawalFeePercent:
+          type: number
+        minWithdrawal:
+          type: number
+        maxWithdrawal:
+          type: number
+        minDeposit:
+          type: number
+        referralCommissionPercent:
+          type: number
+        referralLevels:
+          type: integer
+        maintenanceMode:
+          type: boolean
+        depositEnabled:
+          type: boolean
+        withdrawalEnabled:
+          type: boolean
+      required: [withdrawalFeePercent, minWithdrawal, maxWithdrawal, minDeposit, referralCommissionPercent, referralLevels, maintenanceMode, depositEnabled, withdrawalEnabled]
+
+    PlatformSettingsUpdate:
+      type: object
+      properties:
+        withdrawalFeePercent:
+          type: number
+        minWithdrawal:
+          type: number
+        maxWithdrawal:
+          type: number
+        minDeposit:
+          type: number
+        referralCommissionPercent:
+          type: number
+        referralLevels:
+          type: integer
+        maintenanceMode:
+          type: boolean
+        depositEnabled:
+          type: boolean
+        withdrawalEnabled:
+          type: boolean
+
+    AuditLog:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: ["integer", "null"]
+        userEmail:
+          type: ["string", "null"]
+        action:
+          type: string
+        entityType:
+          type: string
+        entityId:
+          type: ["integer", "null"]
+        ipAddress:
+          type: ["string", "null"]
+        userAgent:
+          type: ["string", "null"]
+        previousValue:
+          type: ["string", "null"]
+        newValue:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, action, entityType, createdAt]
+
+    AuditLogPage:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/AuditLog"
+        total:
+          type: integer
+        page:
+          type: integer
+        totalPages:
+          type: integer
+      required: [data, total, page, totalPages]
+
+    PlatformWallet:
+      type: object
+      properties:
+        id:
+          type: integer
+        method:
+          type: string
+          enum: [pix, usdt_bep20, bitcoin, usdc, bnb]
+        label:
+          type: string
+        address:
+          type: string
+        instructions:
+          type: string
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, method, label, address, instructions, isActive, createdAt]
+
+    WalletInput:
+      type: object
+      required: [method, label, address, instructions]
+      properties:
+        method:
+          type: string
+          enum: [pix, usdt_bep20, bitcoin, usdc, bnb]
+        label:
+          type: string
+        address:
+          type: string
+        instructions:
+          type: string
+        isActive:
+          type: boolean
+
+    BroadcastNotificationInput:
+      type: object
+      required: [title, message, type]
+      properties:
+        title:
+          type: string
+        message:
+          type: string
+        type:
+          type: string
+          enum: [info, success, warning, error]
+        targetUserIds:
+          type: ["array", "null"]
+          items:
+            type: integer
+
+    DailyProfitSettings:
+      type: object
+      required: [id, percentage, executionTime, active, days, createdAt, updatedAt]
+      properties:
+        id:
+          type: integer
+        percentage:
+          type: number
+        executionTime:
+          type: string
+        active:
+          type: boolean
+        days:
+          type: array
+          items:
+            type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    DailyProfitSettingsInput:
+      type: object
+      required: [percentage]
+      properties:
+        percentage:
+          type: number
+          minimum: 0.01
+          maximum: 100
+        executionTime:
+          type: string
+        active:
+          type: boolean
+        days:
+          type: array
+          items:
+            type: integer
+
+    DailyProfitExecuteResult:
+      type: object
+      required: [processed, skipped, errors, totalProfit, duration, isManual]
+      properties:
+        processed:
+          type: integer
+        skipped:
+          type: integer
+        errors:
+          type: integer
+        totalProfit:
+          type: number
+        duration:
+          type: integer
+        isManual:
+          type: boolean
+
+    DailyProfitHistoryEntry:
+      type: object
+      required: [date, percentage, usersCount, totalProfit]
+      properties:
+        date:
+          type: string
+        percentage:
+          type: number
+        usersCount:
+          type: integer
+        totalProfit:
+          type: number
+
+    DailyProfitHistoryPage:
+      type: object
+      required: [data, total, page, totalPages]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/DailyProfitHistoryEntry"
+        total:
+          type: integer
+        page:
+          type: integer
+        totalPages:
+          type: integer

@@ -1,0 +1,403 @@
+Criar uma aplicação moderna, segura, escalável e pronta para produção, permitindo que usuários adquiram cotas de estratégias de trading e acompanhem seu desempenho ao longo do tempo.
+
+ARQUITETURA
+
+Frontend:
+
+React + TypeScript
+Vite
+Tailwind CSS
+React Query
+Zustand
+React Router
+Recharts
+
+Backend:
+
+Node.js
+Express
+Prisma ORM
+JWT
+Bcrypt
+
+Banco de dados:
+
+PostgreSQL
+
+Infraestrutura:
+
+Docker
+Docker Compose
+Nginx
+
+PADRÕES DE DESENVOLVIMENTO
+
+Código totalmente tipado.
+Arquitetura modular.
+Separação clara entre frontend, backend e banco de dados.
+Utilizar princípios SOLID.
+Criar serviços, controladores, middlewares e repositórios separados.
+Criar documentação técnica.
+Seguir boas práticas de segurança OWASP.
+
+DESIGN E EXPERIÊNCIA DO USUÁRIO
+
+Tema:
+
+Interface premium.
+Tema escuro.
+Fundo principal: #0B1120.
+Elementos secundários: #111827.
+Destaques em verde e dourado.
+Visual moderno e profissional.
+
+Requisitos visuais:
+
+Layout responsivo.
+Compatível com desktop, tablet e mobile.
+Animações suaves.
+Dashboard interativo.
+Loading states.
+Skeleton loaders.
+Feedback visual para todas as ações.
+Modo de alto desempenho.
+
+MENU LATERAL
+
+Criar menu lateral recolhível contendo:
+
+Dashboard
+Minhas cotas
+Estratégias
+Depositar
+Sacar
+Extrato
+Indicações
+Notificações
+Perfil
+Segurança
+Suporte
+
+ÁREA DE AUTENTICAÇÃO
+
+Implementar:
+
+Cadastro
+Login
+Recuperação de senha
+Redefinição de senha
+Verificação de e-mail
+Autenticação em dois fatores (2FA)
+Logout seguro
+Gerenciamento de sessões
+
+Campos do cadastro:
+
+Nome completo
+E-mail
+Telefone
+País
+Senha
+Confirmar senha
+Código de indicação opcional
+
+PAINEL DO USUÁRIO
+
+Exibir:
+
+Saldo total
+Valor investido
+Rentabilidade acumulada
+Quantidade de cotas
+Últimas movimentações
+Indicações ativas
+Histórico de desempenho
+Gráficos interativos
+
+MÓDULO DE ESTRATÉGIAS
+
+Criar uma área para listagem das estratégias disponíveis.
+
+Cada estratégia deve possuir:
+
+Nome
+Descrição
+Nível de risco
+Categoria
+Histórico de desempenho
+Drawdown máximo
+Patrimônio sob gestão
+Quantidade total de cotas
+Quantidade de cotas disponíveis
+Valor mínimo
+Data de início
+Status
+
+Permitir que usuários:
+
+Visualizem detalhes
+Adquiram cotas
+Acompanhem resultados
+Consultem histórico
+
+MÓDULO DE COTAS
+
+Implementar:
+
+Compra de cotas
+Visualização das cotas adquiridas
+Histórico completo
+Atualização automática do valor patrimonial
+Cálculo proporcional de participação
+
+Toda atualização de rentabilidade deve ser realizada pelo administrador.
+
+Criar rotina automática para:
+
+Aplicar atualizações periódicas
+Registrar histórico
+Atualizar saldos
+Gerar logs
+
+MÓDULO DE DEPÓSITOS
+
+Métodos aceitos:
+
+PIX
+USDT (BEP20)
+Bitcoin
+USDC
+BNB
+
+Funcionalidades:
+
+Cadastro de carteiras
+Geração de QR Code
+Geração de endereço único
+Validação de transações
+Confirmação manual ou automática
+Histórico completo
+
+Registrar:
+
+ID da transação
+Hash blockchain
+Data e hora
+Método
+Valor
+Status
+
+MÓDULO DE SAQUES
+
+Implementar:
+
+Solicitação de saque
+Aprovação manual ou automática
+Taxas configuráveis
+Limites configuráveis
+Histórico completo
+
+Registrar:
+
+Data
+Hora
+Método
+Valor
+Taxa
+Status
+Hash da transação
+
+MÓDULO DE EXTRATO
+
+Registrar todas as movimentações:
+
+Depósitos
+Saques
+Compra de cotas
+Atualizações de rentabilidade
+Comissões
+Ajustes administrativos
+
+Permitir:
+
+Filtrar por período
+Filtrar por tipo
+Exportar PDF
+Exportar CSV
+
+SISTEMA DE INDICAÇÃO
+
+Implementar:
+
+Link exclusivo por usuário
+Código único de indicação
+Registro automático de indicações
+
+Configurações administrativas:
+
+Percentual de comissão
+Número de níveis
+Critérios de elegibilidade
+Regras de ativação
+
+Criar visualização em árvore.
+
+Registrar:
+
+Usuário indicador
+Usuário indicado
+Data
+Comissões geradas
+Histórico completo
+
+PAINEL ADMINISTRATIVO
+
+Criar área exclusiva para administradores.
+
+Dashboard administrativo com:
+
+Total de usuários
+Usuários ativos
+Volume movimentado
+Total investido
+Total sacado
+Total de cotas vendidas
+Comissões pagas
+Receita da plataforma
+
+Implementar CRUD completo para:
+
+Usuários
+Estratégias
+Cotas
+Rentabilidades
+Comissões
+Depósitos
+Saques
+Notificações
+Carteiras
+Configurações gerais
+
+Permitir configurar:
+
+Rentabilidade variável
+Percentuais de indicação
+Taxas
+Limites
+Status do sistema
+Métodos de pagamento
+
+AUDITORIA
+
+Criar sistema completo de logs.
+
+Registrar:
+
+Usuário responsável
+IP
+Data e hora
+Dispositivo
+Ação executada
+Valor anterior
+Valor atualizado
+
+Nenhuma alteração crítica deve ocorrer sem registro.
+
+BANCO DE DADOS
+
+Criar as tabelas:
+
+users
+sessions
+profiles
+wallets
+deposits
+withdrawals
+strategies
+strategy_performance
+user_positions
+transactions
+referrals
+commissions
+notifications
+settings
+audit_logs
+
+Criar:
+
+Índices
+Relacionamentos
+Chaves estrangeiras
+Migrações
+Seed inicial
+
+SEGURANÇA
+
+Implementar:
+
+JWT com refresh token
+Hash bcrypt
+Rate limiting
+Proteção CSRF
+Proteção XSS
+Validação de entrada
+Sanitização de dados
+Helmet
+CORS configurável
+Criptografia de dados sensíveis
+Middleware global de erros
+
+TESTES
+
+Criar:
+
+Testes unitários
+Testes de integração
+Testes E2E
+
+Validar:
+
+Cadastro
+Login
+Compra de cotas
+Depósitos
+Saques
+Comissões
+Atualizações de rentabilidade
+Extrato
+Painel administrativo
+
+Executar automaticamente todos os testes.
+
+Antes da entrega:
+
+Corrigir erros encontrados
+Validar todas as rotas
+Confirmar integridade do banco de dados
+Garantir que todas as funcionalidades estejam conectadas ao backend
+
+ENTREGÁVEIS
+
+Projeto completo
+Código-fonte organizado
+Docker Compose funcional
+Arquivo .env.example
+Documentação da API
+README detalhado
+Scripts de migração
+Scripts de seed
+Instruções de deploy no Replit
+
+VALIDAÇÃO FINAL OBRIGATÓRIA
+
+Após concluir o desenvolvimento:
+
+Executar todos os testes automatizados.
+Validar todas as regras de negócio.
+Verificar integrações com banco de dados.
+Confirmar funcionamento completo das operações CRUD.
+Garantir ausência de links quebrados.
+Verificar responsividade.
+Validar desempenho.
+Corrigir automaticamente todos os erros encontrados.
+Entregar apenas quando todas as funcionalidades estiverem operando corretamente.

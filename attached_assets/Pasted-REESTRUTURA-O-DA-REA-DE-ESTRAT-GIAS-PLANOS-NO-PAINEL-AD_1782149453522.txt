@@ -1,0 +1,105 @@
+REESTRUTURAÇÃO DA ÁREA DE ESTRATÉGIAS/PLANOS NO PAINEL ADMINISTRATIVO
+
+A tela atual de Estratégias está confusa para administração dos planos. Refazer completamente a área de cadastro e edição para que o administrador consiga configurar os planos de forma simples, rápida e organizada.
+
+NOVA ESTRUTURA DE CONFIGURAÇÃO DE PLANOS
+
+Ao criar ou editar um plano, exibir apenas os seguintes campos:
+
+Informações Básicas
+Nome do Plano
+Categoria do Plano
+Descrição do Plano
+Configuração Financeira
+Valor do Plano (R$)
+Rentabilidade Diária (%)
+Retorno Total Máximo (%)
+
+Exemplo:
+
+Valor do Plano:
+R$ 100,00
+
+Rentabilidade Diária:
+2,97%
+
+Retorno Total:
+200%
+
+Status
+Plano Ativo
+Plano Inativo
+
+Utilizar botão de ativação rápida (toggle switch).
+
+LISTAGEM DOS PLANOS
+
+Na página principal de Estratégias exibir:
+
+Nome do Plano
+Categoria
+Valor
+Rentabilidade Diária
+Retorno Total
+Status
+Botão Editar
+Botão Ativar/Desativar
+REMOVER INFORMAÇÕES DESNECESSÁRIAS
+
+Retirar da tela de configuração dos planos informações que confundem o administrador, como:
+
+AUM Total
+Cotas Disponíveis
+Cotas Vendidas
+Assets Under Management
+Max Drawdown
+Métricas avançadas de fundos
+Indicadores técnicos desnecessários
+
+Manter apenas os dados necessários para gerenciar os planos de investimento.
+
+VISUAL
+Interface limpa e profissional.
+Campos organizados em seções.
+Layout moderno.
+Bordas douradas discretas.
+Melhor espaçamento entre os elementos.
+Formulário intuitivo para administradores sem conhecimento técnico.
+INTEGRAÇÃO COM O SISTEMA
+
+Todas as configurações feitas nesta tela devem refletir automaticamente:
+
+Cards dos planos no painel do usuário.
+Página de investimentos.
+Cálculo de rentabilidade diária.
+Cálculo do retorno total.
+Relatórios administrativos.
+BANCO DE DADOS
+
+Garantir sincronização completa entre:
+
+Cadastro de planos.
+Edição de planos.
+Ativação e desativação.
+Painel do usuário.
+Sistema financeiro.
+RESULTADO ESPERADO
+
+✔ Tela administrativa simples e organizada.
+
+✔ Configuração rápida dos planos.
+
+✔ Campos principais:
+
+Nome
+Categoria
+Valor
+Rentabilidade Diária
+Retorno Total
+Status
+
+✔ Ativação e desativação com um clique.
+
+✔ Alterações refletidas automaticamente em todo o sistema.
+
+✔ Interface profissional e fácil de administrar.

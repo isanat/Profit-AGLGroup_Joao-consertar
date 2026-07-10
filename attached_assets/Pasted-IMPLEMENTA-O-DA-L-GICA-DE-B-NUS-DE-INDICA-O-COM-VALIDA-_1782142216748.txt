@@ -1,0 +1,105 @@
+IMPLEMENTAÇÃO DA LÓGICA DE BÔNUS DE INDICAÇÃO COM VALIDAÇÃO DE DEPÓSITO
+
+Criar uma regra profissional para o sistema de indicação, garantindo que o bônus só seja liberado após a confirmação do depósito pelo administrador.
+
+REGRA PRINCIPAL
+
+O indicador NÃO deve receber bônus imediatamente quando cadastrar um indicado.
+
+O bônus somente será liberado quando:
+
+O indicado realizar um depósito.
+O depósito ficar com status "Pendente".
+O administrador acessar o painel administrativo.
+O administrador analisar o comprovante ou pagamento.
+O administrador alterar o status para "Aprovado".
+
+Somente após a aprovação do depósito:
+
+Calcular a porcentagem configurada no plano de indicação.
+Creditar automaticamente o bônus ao indicador.
+Registrar a movimentação no extrato financeiro.
+Atualizar o saldo disponível do indicador.
+Atualizar os relatórios de ganhos de rede.
+EXEMPLO
+
+Usuário João indica Pedro.
+
+Pedro realiza um depósito de R$ 1.000.
+
+Status inicial:
+
+Depósito: Pendente
+Comissão: Não gerada
+
+Administrador aprova o depósito.
+
+Sistema executa automaticamente:
+
+Comissão de indicação (exemplo 10%)
+Crédito de R$ 100 para João
+Registro no extrato:
+"Bônus de indicação referente ao depósito aprovado de Pedro"
+PROTEÇÕES OBRIGATÓRIAS
+O bônus deve ser pago apenas uma vez por depósito.
+Se o depósito for recusado, nenhum bônus deve ser gerado.
+Se o depósito aprovado for cancelado posteriormente, registrar auditoria.
+Impedir bônus duplicados.
+Criar campo no banco de dados informando:
+comissão_processada = true/false
+data_processamento
+valor_comissao
+PAINEL ADMINISTRATIVO
+
+Adicionar na área de depósitos:
+
+Valor do depósito
+Usuário depositante
+Indicador responsável
+Percentual da comissão
+Valor da comissão
+Status da comissão
+Pendente
+Processada
+
+Ao aprovar o depósito:
+
+Executar automaticamente o cálculo.
+Creditar o líder indicador.
+Atualizar saldo.
+Atualizar extrato.
+Atualizar relatórios.
+PAINEL DO USUÁRIO
+
+Criar área "Ganhos de Indicação" contendo:
+
+Total recebido em bônus.
+Quantidade de indicados ativos.
+Valor recebido por cada indicado.
+Histórico completo das comissões.
+BANCO DE DADOS
+
+Criar relacionamento entre:
+
+Usuários
+Indicações
+Depósitos
+Comissões
+
+Garantir integridade referencial e impedir registros órfãos.
+
+RESULTADO ESPERADO
+
+✔ Bônus somente após aprovação administrativa do depósito.
+
+✔ Nenhuma comissão gerada em depósitos pendentes.
+
+✔ Nenhuma comissão gerada em depósitos recusados.
+
+✔ Comissão processada automaticamente após aprovação.
+
+✔ Atualização automática do saldo, extrato e relatórios.
+
+✔ Sistema seguro contra pagamentos duplicados.
+
+✔ Integração completa entre painel do usuário, administração e banco de dados.

@@ -1,0 +1,158 @@
+CORREÇÃO DO FORMULÁRIO DE CADASTRO POR LINK DE INDICAÇÃO E IMPLEMENTAÇÃO DE RECUPERAÇÃO DE SENHA
+
+Realizar as seguintes melhorias no sistema de cadastro e login, garantindo integração total com o banco de dados.
+
+1. SISTEMA DE INDICAÇÃO POR LINK
+
+Ao acessar um link de indicação, por exemplo:
+
+https://seudominio.com/register?ref=ADMIN001
+
+O sistema deve:
+
+Validar o Indicador
+Verificar automaticamente se o código de indicação existe no banco de dados.
+Buscar os dados do usuário indicador.
+Validar se a conta está ativa.
+Impedir cadastro utilizando códigos inexistentes.
+Pré-preenchimento Automático
+
+Quando o código for válido:
+
+Exibir automaticamente no formulário:
+
+Nome do Indicador
+Código do Indicador
+
+Exemplo:
+
+Indicador:
+João Silva
+
+Código:
+ADMIN001
+
+Esses campos devem aparecer preenchidos automaticamente.
+
+Segurança
+Não permitir alteração manual do código do indicador quando o usuário vier através do link de indicação.
+Caso o código não exista:
+Exibir mensagem:
+"Código de indicação inválido."
+Bloquear o cadastro até que um código válido seja informado.
+Banco de Dados
+
+Criar relacionamento entre:
+
+Usuário Indicador
+Usuário Indicado
+
+Salvar:
+
+ID do indicador
+Nome do indicador
+Código do indicador
+Data do cadastro
+
+Garantir integridade referencial.
+
+2. CORREÇÃO DO CADASTRO
+
+Verificar todo o fluxo:
+
+Cadastro
+Validação
+Criação da conta
+Login automático após cadastro
+Registro do vínculo de indicação
+
+Corrigir qualquer erro de:
+
+Frontend
+Backend
+APIs
+Banco de dados
+3. RECUPERAÇÃO DE SENHA
+
+Adicionar na tela de login:
+
+"Esqueceu sua senha?"
+
+Ao clicar:
+
+Etapa 1
+
+Solicitar:
+
+E-mail cadastrado
+Etapa 2
+
+Validar se o e-mail existe no banco.
+
+Etapa 3
+
+Enviar link seguro de redefinição de senha.
+
+Etapa 4
+
+Permitir ao usuário:
+
+Criar nova senha
+Confirmar nova senha
+Regras
+Link válido por tempo limitado.
+Token único.
+Token expira após uso.
+Senha armazenada com hash seguro.
+Registrar logs da recuperação.
+4. PAINEL ADMINISTRATIVO
+
+Criar área para monitoramento:
+
+Indicações
+
+Mostrar:
+
+Indicador
+Indicado
+Data de cadastro
+Status
+Recuperação de Senha
+
+Mostrar:
+
+Solicitações realizadas
+Data
+E-mail
+Status do token
+5. TESTES E VALIDAÇÕES
+
+Executar uma auditoria completa:
+
+Cadastro por indicação.
+Cadastro sem indicação.
+Código válido.
+Código inválido.
+Recuperação de senha.
+Redefinição de senha.
+Login após redefinição.
+
+Corrigir qualquer erro encontrado.
+
+RESULTADO ESPERADO
+
+✔ O link de indicação identifica automaticamente o indicador.
+
+✔ Nome e código do indicador aparecem preenchidos no cadastro.
+
+✔ O sistema valida se o indicador realmente existe no banco de dados.
+
+✔ O vínculo entre indicador e indicado é salvo corretamente.
+
+✔ Recuperação de senha funcionando de ponta a ponta.
+
+✔ Links de redefinição seguros.
+
+✔ Integração total entre frontend, backend e banco de dados.
+
+✔ Sistema estável, sem erros de console, sem páginas em branco e totalmente funcional.
