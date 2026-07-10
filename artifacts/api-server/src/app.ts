@@ -8,6 +8,9 @@ import { logger } from "./lib/logger";
 
 const app: Express = express();
 
+// Trust proxy (Traefik/Caddy) para capturar IPs reais dos usuários
+app.set("trust proxy", true);
+
 app.use(
   pinoHttp({
     logger,

@@ -1,6 +1,24 @@
 import { db, auditLogsTable } from "@workspace/db";
 import { Request } from "express";
 
+/** Extrai o IP real do usuário, considerando proxies (Traefik/Caddy) */
+function getClientIp(req?: Request): string | null {
+  if (!req) return null;
+  // x-forwarded-for: "client-ip, proxy1-ip, proxy2-ip" — pegar o primeiro
+  const xff = req.headers["x-forwarded-for"];
+  if (typeof xff === "string") {
+    return xff.split(",")[0].trim();
+  }
+  if (Array.isArray(xff) && xff.length > 0) {
+    return xff[0].trim();
+  }
+  // x-real-ip (alguns proxies)
+  const xri = req.headers["x-real-ip"];
+  if (typeof xri === "string") return xri.trim();
+  // Fallback para req.ip (com trust proxy habilitado)
+  return req.ip ?? null;
+}
+
 export async function auditLog(opts: {
   userId?: number;
   userEmail?: string;
@@ -20,7 +38,7 @@ export async function auditLog(opts: {
       action: opts.action,
       entityType: opts.entityType,
       entityId: opts.entityId ?? null,
-      ipAddress: opts.ipAddress ?? opts.req?.ip ?? null,
+      ipAddress: opts.ipAddress ?? getClientIp(opts.req),
       userAgent: opts.userAgent ?? opts.req?.headers["user-agent"] ?? null,
       previousValue: opts.previousValue ?? null,
       newValue: opts.newValue ?? null,
