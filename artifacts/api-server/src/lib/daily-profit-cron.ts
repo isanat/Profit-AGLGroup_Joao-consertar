@@ -4,16 +4,20 @@ import { executeDailyProfit } from "../routes/daily-profit";
 
 let task: cron.ScheduledTask | null = null;
 
-/** Start a cron that fires every minute and internally decides whether to run */
+/**
+ * Cron que roda a cada minuto e verifica se alguma posição ativa completou 24h
+ * desde a última vez que recebeu rendimento (ou desde a compra). Se sim, credita
+ * o rendimento automaticamente. 100% automático — sem horário fixo, sem dias da
+ * semana, sem intervenção humana.
+ */
 export function startDailyProfitCron(): void {
   if (task) {
     task.stop();
   }
 
-  // Run every minute; execution logic checks if configured time and day match
   task = cron.schedule("* * * * *", async () => {
     try {
-      const result = await executeDailyProfit({ isManual: false });
+      const result = await executeDailyProfit();
       if (result.processed > 0 || result.errors > 0) {
         logger.info(result, "Daily profit cron: execution result");
       }
@@ -22,7 +26,7 @@ export function startDailyProfitCron(): void {
     }
   });
 
-  logger.info("Daily profit cron started (checks every minute)");
+  logger.info("Daily profit cron started (24h cycle per position, checks every minute)");
 }
 
 export function stopDailyProfitCron(): void {

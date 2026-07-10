@@ -38,67 +38,30 @@ export interface ExecuteResult {
   isManual: boolean;
 }
 
-export async function executeDailyProfit(opts: { isManual: boolean }): Promise<ExecuteResult> {
+/**
+ * Executa o rendimento diário. 100% automático — sem horário fixo, sem dias da
+ * semana, sem intervenção humana.
+ *
+ * Lógica: para cada posição ativa, verifica se passaram 24h desde a última vez
+ * que recebeu rendimento (ou desde a compra, se nunca recebeu). Se sim, credita
+ * o rendimento. O duplicate guard é por posição + janela de 24h (não por dia UTC).
+ */
+export async function executeDailyProfit(opts?: { isManual?: boolean }): Promise<ExecuteResult> {
   const startTime = Date.now();
   const now = new Date();
 
   const settings = await getOrCreateSettings();
+  const globalPercentage = Number(settings.percentage) || 1;
 
-  if (!settings.active && !opts.isManual) {
-    logger.info("Daily profit: skipped — settings inactive");
-    return { processed: 0, skipped: 0, errors: 0, totalProfit: 0, duration: 0, isManual: opts.isManual };
-  }
-
-  // AUTOMATED EXECUTION (not manual):
-  // Instead of requiring an EXACT minute match (which breaks if the server restarts
-  // or is busy at that moment), we use a "daily window" approach:
-  //  - Determine today's target execution time (HH:MM in server timezone)
-  //  - If we're PAST that time today AND we haven't run today → execute now
-  //  - The duplicate guard (by UTC day) ensures we never run twice in one day
-  if (!opts.isManual) {
-    // Check selected day of week
-    const days = await db
-      .select()
-      .from(dailyProfitDaysTable)
-      .where(eq(dailyProfitDaysTable.settingId, settings.id));
-
-    const todayDow = now.getDay(); // 0=Sun..6=Sat
-    // Default: if no days configured, run EVERY day (auto-friendly)
-    const isSelectedDay = days.length === 0 ? true : days.some((d) => d.dayOfWeek === todayDow);
-    if (!isSelectedDay) {
-      return { processed: 0, skipped: 0, errors: 0, totalProfit: 0, duration: 0, isManual: false };
-    }
-
-    // Time window check: have we passed today's execution time?
-    const [configHour, configMin] = settings.executionTime.split(":").map(Number);
-    const targetToday = new Date(now);
-    targetToday.setHours(configHour, configMin, 0, 0);
-    if (now < targetToday) {
-      // Not yet time today
-      return { processed: 0, skipped: 0, errors: 0, totalProfit: 0, duration: 0, isManual: false };
-    }
-    // If we're past target time, proceed — the duplicate guard below prevents double execution
-  }
-
-  const globalPercentage = Number(settings.percentage);
-  logger.info({ globalPercentage, isManual: opts.isManual }, "Daily profit: starting execution");
-
-  // Fetch all active positions + their strategies (to use per-strategy dailyProfitPercent)
+  // Fetch all active positions + their strategies
   const positions = await db
     .select()
     .from(userPositionsTable)
     .where(eq(userPositionsTable.status, "active"));
 
-  // Fetch strategies for per-strategy percentage
   const { strategiesTable } = await import("@workspace/db");
   const allStrategies = await db.select().from(strategiesTable);
   const stratMap = Object.fromEntries(allStrategies.map((s) => [s.id, s]));
-
-  // Get the date boundary for duplicate check (UTC day)
-  const dayStart = new Date(now);
-  dayStart.setUTCHours(0, 0, 0, 0);
-  const dayEnd = new Date(now);
-  dayEnd.setUTCHours(23, 59, 59, 999);
 
   let processed = 0;
   let skipped = 0;
@@ -107,20 +70,20 @@ export async function executeDailyProfit(opts: { isManual: boolean }): Promise<E
 
   for (const pos of positions) {
     try {
-      // Duplicate guard: has this position already received profit today?
-      const [existing] = await db
-        .select({ id: dailyProfitHistoryTable.id })
+      // Buscar a última execução de rendimento desta posição
+      const lastExec = await db
+        .select({ executedAt: dailyProfitHistoryTable.executedAt })
         .from(dailyProfitHistoryTable)
-        .where(
-          and(
-            eq(dailyProfitHistoryTable.investmentId, pos.id),
-            gte(dailyProfitHistoryTable.executedAt, dayStart),
-            lte(dailyProfitHistoryTable.executedAt, dayEnd),
-          ),
-        )
+        .where(eq(dailyProfitHistoryTable.investmentId, pos.id))
+        .orderBy(desc(dailyProfitHistoryTable.executedAt))
         .limit(1);
 
-      if (existing) {
+      // Determinar a última vez que recebeu rendimento (ou purchasedAt se nunca)
+      const lastProfitTime = lastExec.length > 0 ? new Date(lastExec[0].executedAt) : new Date(pos.purchasedAt);
+
+      // Verificar se passaram 24h desde a última execução (ou compra)
+      const hoursSinceLast = (now.getTime() - lastProfitTime.getTime()) / (1000 * 60 * 60);
+      if (hoursSinceLast < 24) {
         skipped++;
         continue;
       }
@@ -237,15 +200,11 @@ router.get("/settings", async (req: AuthRequest, res) => {
   }
 });
 
-// POST /admin/daily-profit/settings
+// POST /admin/daily-profit/settings — apenas o percentual global (fallback)
+// O rendimento é 100% automático: 24h após cada posição ser ativada, sem horário fixo.
 router.post("/settings", async (req: AuthRequest, res) => {
   try {
-    const { percentage, executionTime, active, days } = req.body as {
-      percentage: number;
-      executionTime?: string;
-      active?: boolean;
-      days?: number[];
-    };
+    const { percentage } = req.body as { percentage: number };
 
     if (!percentage || percentage < 0.01 || percentage > 100) {
       res.status(400).json({ error: "Percentual deve ser entre 0.01 e 100" });
@@ -258,36 +217,15 @@ router.post("/settings", async (req: AuthRequest, res) => {
       .update(dailyProfitSettingsTable)
       .set({
         percentage: String(percentage),
-        executionTime: executionTime ?? existingSettings.executionTime,
-        active: active !== undefined ? active : existingSettings.active,
       })
       .where(eq(dailyProfitSettingsTable.id, existingSettings.id))
       .returning();
-
-    // Replace days
-    if (Array.isArray(days)) {
-      await db
-        .delete(dailyProfitDaysTable)
-        .where(eq(dailyProfitDaysTable.settingId, updated.id));
-
-      if (days.length > 0) {
-        await db.insert(dailyProfitDaysTable).values(
-          days.map((dow) => ({ settingId: updated.id, dayOfWeek: dow })),
-        );
-      }
-    }
-
-    const savedDays = await db
-      .select()
-      .from(dailyProfitDaysTable)
-      .where(eq(dailyProfitDaysTable.settingId, updated.id));
 
     res.json({
       id: updated.id,
       percentage: Number(updated.percentage),
       executionTime: updated.executionTime,
       active: updated.active,
-      days: savedDays.map((d) => d.dayOfWeek),
       createdAt: updated.createdAt,
       updatedAt: updated.updatedAt,
     });
@@ -297,16 +235,7 @@ router.post("/settings", async (req: AuthRequest, res) => {
   }
 });
 
-// POST /admin/daily-profit/execute
-router.post("/execute", async (req: AuthRequest, res) => {
-  try {
-    const result = await executeDailyProfit({ isManual: true });
-    res.json(result);
-  } catch (err) {
-    req.log.error({ err }, "Daily profit manual execute error");
-    res.status(500).json({ error: "Erro ao executar distribuição" });
-  }
-});
+// POST /admin/daily-profit/execute — removido (rendimento é 100% automático, 24h após ativação)
 
 // GET /admin/daily-profit/history
 router.get("/history", async (req: AuthRequest, res) => {
