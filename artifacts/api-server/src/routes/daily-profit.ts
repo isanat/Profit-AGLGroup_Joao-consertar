@@ -171,7 +171,7 @@ export async function executeDailyProfit(opts?: { isManual?: boolean }): Promise
   const duration = Date.now() - startTime;
   logger.info({ processed, skipped, errors, totalProfit, duration }, "Daily profit: execution complete");
 
-  return { processed, skipped, errors, totalProfit, duration, isManual: opts.isManual };
+  return { processed, skipped, errors, totalProfit, duration, isManual: opts?.isManual ?? false };
 }
 
 // ─── Routes ───────────────────────────────────────────────────────────────────
