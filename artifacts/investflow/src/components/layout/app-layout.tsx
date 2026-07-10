@@ -26,6 +26,7 @@ import { useLogout } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { ModalProvider, useModal } from "@/lib/modal-context";
 import { GlobalModals } from "@/components/global-modals";
+import { useSiteConfig } from "@/lib/site-config";
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -39,6 +40,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 function AppLayoutInner({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAuth();
   const { openModal } = useModal();
+  const { config: siteConfig } = useSiteConfig();
   const [location] = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const logoutMutation = useLogout();
@@ -100,7 +102,15 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
         style={{ borderRight: "1px solid rgba(245,158,11,0.15)" }}
       >
         <div className="p-5 flex items-center border-b" style={{ borderColor: "rgba(245,158,11,0.1)" }}>
-          <img src="/logo.png" alt="Alliance Group" className="h-12 w-auto" />
+          <img
+            src={siteConfig?.siteLogoUrl || "/logo.png"}
+            alt={siteConfig?.siteName || "Alliance Group"}
+            className="h-14 w-auto"
+            onError={(e) => { (e.target as HTMLImageElement).src = "/logo.png"; }}
+          />
+          <span className="ml-3 text-base font-bold text-amber-400 tracking-wide">
+            {siteConfig?.siteName || "Alliance Group"}
+          </span>
         </div>
 
         {/* User info */}
@@ -199,7 +209,12 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
           className="flex items-center justify-between p-4 border-b"
           style={{ borderColor: "rgba(245,158,11,0.1)" }}
         >
-          <img src="/logo.png" alt="Alliance Group" className="h-10 w-auto" />
+          <img
+            src={siteConfig?.siteLogoUrl || "/logo.png"}
+            alt={siteConfig?.siteName || "Alliance Group"}
+            className="h-10 w-auto"
+            onError={(e) => { (e.target as HTMLImageElement).src = "/logo.png"; }}
+          />
           <button
             onClick={() => setIsMobileMenuOpen(false)}
             className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent"
@@ -289,6 +304,67 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
 
       {/* ── Main ── */}
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        {/* Desktop header */}
+        <header
+          className="hidden md:flex items-center justify-between px-6 flex-shrink-0"
+          style={{
+            height: "64px",
+            background: "#0B1120",
+            borderBottom: "1px solid rgba(245,158,11,0.12)",
+          }}
+        >
+          {/* Left: logo + site name */}
+          <div className="flex items-center gap-3">
+            <img
+              src={siteConfig?.siteLogoUrl || "/logo.png"}
+              alt={siteConfig?.siteName || "Alliance Group"}
+              className="h-9 w-auto"
+              onError={(e) => { (e.target as HTMLImageElement).src = "/logo.png"; }}
+            />
+            <span className="text-sm font-bold text-amber-400 tracking-wide">
+              {siteConfig?.siteName || "Alliance Group"}
+            </span>
+          </div>
+
+          {/* Right: notifications + profile */}
+          <div className="flex items-center gap-3">
+            <button
+              className="p-2 rounded-lg text-muted-foreground hover:text-amber-400 hover:bg-amber-400/10 transition-colors relative"
+              onClick={() => openModal("notifications")}
+              title="Notificações"
+            >
+              <Bell className="h-5 w-5" />
+              <span
+                className="absolute top-1 right-1 w-2 h-2 rounded-full bg-amber-400"
+                style={{ display: "none" }}
+              />
+            </button>
+            <Link href="/profile" className="flex items-center gap-2 p-1 pr-3 rounded-lg hover:bg-accent transition-colors">
+              <div
+                style={{
+                  width: "32px",
+                  height: "32px",
+                  borderRadius: "50%",
+                  background: "linear-gradient(135deg, #b45309, #f59e0b)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: "13px",
+                  fontWeight: 800,
+                  color: "#fff",
+                  flexShrink: 0,
+                }}
+              >
+                {initial}
+              </div>
+              <div className="hidden lg:block text-left">
+                <p className="text-xs font-semibold leading-tight">{user?.name}</p>
+                <p className="text-[10px] text-muted-foreground leading-tight truncate max-w-[120px]">{user?.email}</p>
+              </div>
+            </Link>
+          </div>
+        </header>
+
         {/* Mobile header */}
         <header
           className="md:hidden flex items-center justify-between px-4 flex-shrink-0"
@@ -298,7 +374,12 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
             borderBottom: "1px solid rgba(245,158,11,0.12)",
           }}
         >
-          <img src="/logo.png" alt="Alliance Group" className="h-9 w-auto" />
+          <img
+            src={siteConfig?.siteLogoUrl || "/logo.png"}
+            alt={siteConfig?.siteName || "Alliance Group"}
+            className="h-9 w-auto"
+            onError={(e) => { (e.target as HTMLImageElement).src = "/logo.png"; }}
+          />
           <div className="flex items-center gap-2">
             <button
               className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent"

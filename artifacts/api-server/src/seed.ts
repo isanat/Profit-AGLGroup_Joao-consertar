@@ -250,6 +250,14 @@ async function seed() {
     { key: "withdrawalAutoApproveEnabled", value: "false" },
     { key: "withdrawalAutoApproveLimit", value: "500" },
     { key: "withdrawalAutoApproveMinAccountAgeDays", value: "7" },
+    // Identidade do site
+    { key: "siteName", value: "Alliance Group" },
+    { key: "siteLogoUrl", value: "/logo.png" },
+    // Suporte
+    { key: "supportWhatsapp", value: "" },
+    { key: "supportEmail", value: "" },
+    { key: "supportPhone", value: "" },
+    { key: "supportTelegram", value: "" },
   ];
 
   for (const s of defaultSettings) {

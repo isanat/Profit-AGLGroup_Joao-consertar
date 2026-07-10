@@ -1,67 +1,115 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Mail, MessageSquare, Phone } from "lucide-react";
+import { Mail, MessageSquare, Phone, Send } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { useSiteConfig } from "@/lib/site-config";
 
 export default function Support() {
+  const { config } = useSiteConfig();
+
+  const cards = [];
+  if (config?.supportWhatsapp) {
+    const waNumber = config.supportWhatsapp.replace(/\D/g, "");
+    cards.push({
+      icon: <MessageSquare className="h-8 w-8 text-emerald-400 mb-4" />,
+      title: "WhatsApp",
+      value: config.supportWhatsapp,
+      link: `https://wa.me/${waNumber}`,
+      linkText: "Conversar agora",
+    });
+  }
+  if (config?.supportEmail) {
+    cards.push({
+      icon: <Mail className="h-8 w-8 text-amber-400 mb-4" />,
+      title: "E-mail",
+      value: config.supportEmail,
+      link: `mailto:${config.supportEmail}`,
+      linkText: "Enviar e-mail",
+    });
+  }
+  if (config?.supportPhone) {
+    cards.push({
+      icon: <Phone className="h-8 w-8 text-blue-400 mb-4" />,
+      title: "Telefone",
+      value: config.supportPhone,
+      link: `tel:${config.supportPhone.replace(/\D/g, "")}`,
+      linkText: "Ligar agora",
+    });
+  }
+  if (config?.supportTelegram) {
+    cards.push({
+      icon: <Send className="h-8 w-8 text-sky-400 mb-4" />,
+      title: "Telegram",
+      value: config.supportTelegram,
+      link: `https://t.me/${config.supportTelegram.replace("@", "")}`,
+      linkText: "Abrir Telegram",
+    });
+  }
+
   return (
     <div className="space-y-6 max-w-3xl">
       <div>
-        <h2 className="text-3xl font-bold tracking-tight">Support</h2>
-        <p className="text-muted-foreground">We're here to help you.</p>
+        <h2 className="text-2xl font-bold tracking-tight">Suporte</h2>
+        <p className="text-sm text-muted-foreground">Estamos aqui para ajudar você.</p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
+      {cards.length === 0 ? (
         <Card>
-          <CardContent className="pt-6 flex flex-col items-center text-center">
-            <Mail className="h-8 w-8 text-primary mb-4" />
-            <h3 className="font-semibold mb-1">Email</h3>
-            <p className="text-sm text-muted-foreground">support@investflow.com</p>
+          <CardContent className="pt-6 text-center">
+            <p className="text-sm text-muted-foreground">
+              Nenhum canal de suporte configurado ainda. O administrador pode configurar em Configurações → Geral.
+            </p>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="pt-6 flex flex-col items-center text-center">
-            <MessageSquare className="h-8 w-8 text-primary mb-4" />
-            <h3 className="font-semibold mb-1">Live Chat</h3>
-            <p className="text-sm text-muted-foreground">Available 24/7</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6 flex flex-col items-center text-center">
-            <Phone className="h-8 w-8 text-primary mb-4" />
-            <h3 className="font-semibold mb-1">Phone</h3>
-            <p className="text-sm text-muted-foreground">+1 (800) 123-4567</p>
-          </CardContent>
-        </Card>
-      </div>
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2">
+          {cards.map((c, i) => (
+            <Card key={i}>
+              <CardContent className="pt-6 flex flex-col items-center text-center">
+                {c.icon}
+                <h3 className="font-semibold mb-1">{c.title}</h3>
+                <p className="text-sm text-muted-foreground mb-3">{c.value}</p>
+                <a
+                  href={c.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs font-medium text-amber-400 hover:text-amber-300 transition-colors"
+                >
+                  {c.linkText} →
+                </a>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
 
       <Card>
         <CardHeader>
-          <CardTitle>Frequently Asked Questions</CardTitle>
+          <CardTitle>Perguntas Frequentes</CardTitle>
         </CardHeader>
         <CardContent>
           <Accordion type="single" collapsible className="w-full">
             <AccordionItem value="item-1">
-              <AccordionTrigger>How long do withdrawals take?</AccordionTrigger>
+              <AccordionTrigger>Quanto tempo levam os saques?</AccordionTrigger>
               <AccordionContent>
-                Crypto withdrawals are typically processed within 1-2 hours. PIX withdrawals are usually instant but can take up to 24 hours depending on the banking system.
+                Saques em cripto são processados em 1-2 horas. Saques via PIX são geralmente instantâneos, mas podem levar até 24h.
               </AccordionContent>
             </AccordionItem>
             <AccordionItem value="item-2">
-              <AccordionTrigger>What are the minimum investment amounts?</AccordionTrigger>
+              <AccordionTrigger>Quais os valores mínimos de investimento?</AccordionTrigger>
               <AccordionContent>
-                The minimum investment varies by strategy. You can see the specific minimum amount required on the strategy details page.
+                Cada estratégia tem seu valor mínimo, começando a partir de R$ 100. Verifique a página de Planos para detalhes.
               </AccordionContent>
             </AccordionItem>
             <AccordionItem value="item-3">
-              <AccordionTrigger>How are yields calculated and paid?</AccordionTrigger>
+              <AccordionTrigger>Como funciona o rendimento diário?</AccordionTrigger>
               <AccordionContent>
-                Yields are calculated based on the performance of the underlying strategy. They are credited to your account balance automatically when the strategy manager distributes them.
+                O rendimento é creditado automaticamente 24h após a ativação de cada posição, baseado no percentual da estratégia.
               </AccordionContent>
             </AccordionItem>
             <AccordionItem value="item-4">
-              <AccordionTrigger>Is my money safe?</AccordionTrigger>
+              <AccordionTrigger>Como funciona o programa de indicações?</AccordionTrigger>
               <AccordionContent>
-                We use industry-standard security measures, including cold storage for crypto assets and bank-level encryption. We highly recommend enabling 2FA on your account for additional security.
+                Você recebe 5% de bônus sobre cada depósito confirmado dos seus indicados diretos. Compartilhe seu link na página de Indicações.
               </AccordionContent>
             </AccordionItem>
           </Accordion>

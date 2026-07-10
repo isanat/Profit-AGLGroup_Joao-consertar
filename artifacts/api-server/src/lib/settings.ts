@@ -11,6 +11,14 @@ const defaultSettings: Record<string, string> = {
   maintenanceMode: "false",
   depositEnabled: "true",
   withdrawalEnabled: "true",
+  // ── Identidade do site ────────────────────────────────────────────────────
+  siteName: "Alliance Group",
+  siteLogoUrl: "/logo.png",
+  // ── Suporte / Contato ──────────────────────────────────────────────────────
+  supportWhatsapp: "",
+  supportEmail: "",
+  supportPhone: "",
+  supportTelegram: "",
   // ── Payment gateways ──────────────────────────────────────────────────────
   nowpaymentsEnabled: "false",
   nowpaymentsApiKey: "",
@@ -78,6 +86,40 @@ export async function getAllSettings(): Promise<Record<string, string | number |
     withdrawalAutoApproveEnabled: result.withdrawalAutoApproveEnabled === "true",
     withdrawalAutoApproveLimit: Number(result.withdrawalAutoApproveLimit),
     withdrawalAutoApproveMinAccountAgeDays: Number(result.withdrawalAutoApproveMinAccountAgeDays),
+    // Identidade do site
+    siteName: String(result.siteName || "Alliance Group"),
+    siteLogoUrl: String(result.siteLogoUrl || "/logo.png"),
+    // Suporte
+    supportWhatsapp: String(result.supportWhatsapp || ""),
+    supportEmail: String(result.supportEmail || ""),
+    supportPhone: String(result.supportPhone || ""),
+    supportTelegram: String(result.supportTelegram || ""),
+  };
+}
+
+/**
+ * Returns public site config (name, logo, support) — sem auth, usado no layout.
+ */
+export async function getPublicSiteConfig(): Promise<{
+  siteName: string;
+  siteLogoUrl: string;
+  supportWhatsapp: string;
+  supportEmail: string;
+  supportPhone: string;
+  supportTelegram: string;
+}> {
+  const rows = await db.select().from(settingsTable);
+  const result: Record<string, string> = { ...defaultSettings };
+  for (const row of rows) {
+    result[row.key] = row.value;
+  }
+  return {
+    siteName: String(result.siteName || "Alliance Group"),
+    siteLogoUrl: String(result.siteLogoUrl || "/logo.png"),
+    supportWhatsapp: String(result.supportWhatsapp || ""),
+    supportEmail: String(result.supportEmail || ""),
+    supportPhone: String(result.supportPhone || ""),
+    supportTelegram: String(result.supportTelegram || ""),
   };
 }
 

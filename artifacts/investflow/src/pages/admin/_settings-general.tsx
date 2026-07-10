@@ -183,6 +183,70 @@ export function GeneralSettingsContent({ embedded = false }: { embedded?: boolea
             </div>
           </div>
 
+          {/* Identidade do site */}
+          <div className="space-y-4 pt-4 border-t border-border">
+            <h3 className="font-medium text-sm">Identidade do Site</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Nome do site</label>
+                <Input
+                  value={formData.siteName ?? ""}
+                  onChange={(e) => field("siteName", e.target.value)}
+                  placeholder="Alliance Group"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">URL da logo</label>
+                <Input
+                  value={formData.siteLogoUrl ?? ""}
+                  onChange={(e) => field("siteLogoUrl", e.target.value)}
+                  placeholder="/logo.png"
+                />
+                <p className="text-xs text-muted-foreground">Caminho da imagem (ex: /logo.png ou URL completa)</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Suporte / Contato */}
+          <div className="space-y-4 pt-4 border-t border-border">
+            <h3 className="font-medium text-sm">Suporte / Contato</h3>
+            <p className="text-xs text-muted-foreground">Estes dados aparecem na página de Suporte do usuário. Deixe vazio para esconder o canal.</p>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">WhatsApp</label>
+                <Input
+                  value={formData.supportWhatsapp ?? ""}
+                  onChange={(e) => field("supportWhatsapp", e.target.value)}
+                  placeholder="+55 11 99999-9999"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">E-mail de suporte</label>
+                <Input
+                  value={formData.supportEmail ?? ""}
+                  onChange={(e) => field("supportEmail", e.target.value)}
+                  placeholder="suporte@flashymining.com"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Telefone</label>
+                <Input
+                  value={formData.supportPhone ?? ""}
+                  onChange={(e) => field("supportPhone", e.target.value)}
+                  placeholder="+55 11 3333-3333"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Telegram</label>
+                <Input
+                  value={formData.supportTelegram ?? ""}
+                  onChange={(e) => field("supportTelegram", e.target.value)}
+                  placeholder="@seucanal"
+                />
+              </div>
+            </div>
+          </div>
+
           <Button onClick={handleSave} disabled={updateSettings.isPending} className="w-full">
             {updateSettings.isPending ? "Salvando..." : "Salvar Configurações"}
           </Button>

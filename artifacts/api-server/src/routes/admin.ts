@@ -487,6 +487,14 @@ router.patch("/settings", async (req: AuthRequest, res) => {
       "withdrawalAutoApproveEnabled",
       "withdrawalAutoApproveLimit",
       "withdrawalAutoApproveMinAccountAgeDays",
+      // Identidade do site
+      "siteName",
+      "siteLogoUrl",
+      // Suporte
+      "supportWhatsapp",
+      "supportEmail",
+      "supportPhone",
+      "supportTelegram",
     ];
     for (const key of allowed) {
       if (req.body[key] !== undefined) {
