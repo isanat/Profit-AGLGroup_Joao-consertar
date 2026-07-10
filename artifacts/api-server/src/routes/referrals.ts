@@ -30,11 +30,10 @@ router.get("/", requireAuth, async (req: AuthRequest, res) => {
     }
 
     const commissionRate = Number(await getSetting("referralCommissionPercent")) || 5;
-    // Prefer SITE_URL env (custom domain), then find aglgroup.online in REPLIT_DOMAINS, else first domain
+    // Build the referral link using the actual domain the user is accessing from.
+    // Priority: SITE_URL env > request host header (always correct in production).
     const siteUrl = process.env.SITE_URL
-      || (process.env.REPLIT_DOMAINS?.split(",").map(d => d.trim()).find(d => d.includes("aglgroup")) ?? null)
-      || (process.env.REPLIT_DOMAINS ? `https://${process.env.REPLIT_DOMAINS.split(",")[0].trim()}` : null)
-      || "http://localhost:80";
+      || `https://${req.headers.host || "flashymining.com"}`;
     const baseUrl = siteUrl.startsWith("http") ? siteUrl : `https://${siteUrl}`;
 
     const refMembers = refs.map(r => {
