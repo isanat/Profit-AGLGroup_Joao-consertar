@@ -195,16 +195,18 @@ export function DepositContent() {
           </div>
 
           <div className="p-4 space-y-4">
-            {/* Amount */}
+            {/* Amount — distinguir claramente BRL (saldo a creditar) vs cripto (valor a enviar) */}
             <div style={{ textAlign: "center", padding: "16px", background: "rgba(245,158,11,0.06)", borderRadius: "12px" }}>
-              <p style={{ fontSize: "11px", color: "#64748b", marginBottom: "6px" }}>Valor a pagar</p>
+              <p style={{ fontSize: "11px", color: "#64748b", marginBottom: "6px" }}>Saldo que será creditado</p>
               <p style={{ fontSize: "32px", fontWeight: 900, color: "#f59e0b", letterSpacing: "-0.02em" }}>
                 {fmtBRL(invoice.amountRequested)}
               </p>
               {invoice.payAmount && invoice.payCurrency && !isPix && (
-                <p style={{ fontSize: "12px", color: "#94a3b8", marginTop: "4px" }}>
-                  ≈ {invoice.payAmount} {invoice.payCurrency.toUpperCase()}
-                </p>
+                <div style={{ marginTop: "8px", padding: "8px 12px", background: "rgba(16,185,129,0.08)", borderRadius: "8px", display: "inline-block" }}>
+                  <p style={{ fontSize: "11px", color: "#10b981" }}>
+                    Enviar <strong>{invoice.payAmount} {invoice.payCurrency.toUpperCase()}</strong> para o endereço abaixo
+                  </p>
+                </div>
               )}
             </div>
 
@@ -369,7 +371,7 @@ export function DepositContent() {
       {selectedMethod && (
         <div style={{ background: "#111827", border: "1px solid rgba(245,158,11,0.2)", borderRadius: "16px", padding: "20px" }}>
           <p style={{ fontSize: "12px", fontWeight: 600, color: "#94a3b8", marginBottom: "12px", textTransform: "uppercase", letterSpacing: "0.08em" }}>
-            Valor do Depósito
+            Valor do Depósito (em Reais)
           </p>
           <div className="relative mb-1">
             <span style={{ position: "absolute", left: "14px", top: "50%", transform: "translateY(-50%)", fontSize: "14px", fontWeight: 700, color: "#64748b" }}>
@@ -385,9 +387,20 @@ export function DepositContent() {
               style={{ paddingLeft: "42px", fontSize: "18px", fontWeight: 700, height: "52px" }}
             />
           </div>
-          <p style={{ fontSize: "11px", color: "#64748b", marginBottom: "16px" }}>
+          <p style={{ fontSize: "11px", color: "#64748b", marginBottom: "8px" }}>
             Valor mínimo: {fmtBRL(config?.minDeposit ?? 10)}
           </p>
+          {selectedMethod.kind === "nowpayments" && amount && parseFloat(amount) > 0 && (
+            <p style={{ fontSize: "11px", color: "#10b981", marginBottom: "16px", padding: "8px 10px", background: "rgba(16,185,129,0.08)", borderRadius: "8px" }}>
+              O sistema converte {fmtBRL(parseFloat(amount))} para {selectedMethod.code.toUpperCase()} automaticamente.
+              Você verá o valor exato em cripto antes de pagar.
+            </p>
+          )}
+          {selectedMethod.kind === "nowpayments" && (!amount || parseFloat(amount) < 50) && (
+            <p style={{ fontSize: "11px", color: "#f59e0b", marginBottom: "16px" }}>
+              Dica: para cripto, valores abaixo de R$ 50 podem ser recusados pelo gateway. Use R$ 50+.
+            </p>
+          )}
           <Button
             className="w-full h-12 text-base font-bold"
             onClick={handleCreateInvoice}

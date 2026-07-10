@@ -189,6 +189,18 @@ router.post("/create", requireAuth, async (req: AuthRequest, res) => {
       // Mark invoice failed
       await db.update(paymentInvoicesTable).set({ status: "failed", metadata: { error: String(err?.message || err) } })
         .where(eq(paymentInvoicesTable.id, invoice.id));
+      // Detectar erros específicos do NowPayments para mensagens amigáveis
+      const errMsg = String(err?.message || err);
+      if (errMsg.includes("amountTo is too small")) {
+        res.status(400).json({
+          error: `Valor muito baixo para esta moeda. O NowPayments requer um valor mínimo em cripto. Tente um valor maior (ex: R$ 50 ou mais).`,
+        });
+        return;
+      }
+      if (errMsg.includes("BAD_REQUEST") || errMsg.includes("400")) {
+        res.status(400).json({ error: `Erro do NowPayments: ${errMsg}. Tente outra moeda ou valor maior.` });
+        return;
+      }
       res.status(500).json({ error: err?.message || "Falha ao criar fatura de pagamento" });
     }
   } catch (err) {
